@@ -1,103 +1,102 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+import { calcQuote } from "@/lib/calc";
+import { useData } from "@/lib/data";
+import { sampleProject } from "@/lib/defaults";
+import { rupeesShort } from "@/lib/format";
+import type { Project } from "@/lib/types";
+import { ProjectTable } from "@/components/ProjectTable";
+import { Button, Card, EmptyState, LinkButton, Loading, PageHeader, SectionTitle } from "@/components/ui";
+
+export default function Dashboard() {
+  const { store, settings } = useData();
+  const [projects, setProjects] = useState<Project[] | null>(null);
+
+  const load = () => store.listProjects().then(setProjects);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store]);
+
+  if (!projects || !settings) return <Loading />;
+
+  const totals = projects.map((p) => ({ p, c: calcQuote(p.items, p.quote) }));
+  const open = totals.filter((t) => t.p.status !== "approved");
+  const approved = totals.filter((t) => t.p.status === "approved");
+  const pipeline = open.reduce((s, t) => s + t.c.grandTotal, 0);
+  const won = approved.reduce((s, t) => s + t.c.grandTotal, 0);
+  const priced = totals.filter((t) => t.c.taxable > 0);
+  const avgMargin = priced.length ? priced.reduce((s, t) => s + t.c.marginPct, 0) / priced.length : 0;
+  const expectedProfit = open.reduce((s, t) => s + t.c.profit, 0);
+
+  const loadSample = async () => {
+    await store.saveProject(sampleProject(settings));
+    load();
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="mx-auto max-w-6xl px-8 py-8">
+      <PageHeader
+        title="Dashboard"
+        subtitle={settings.studioName}
+        actions={
+          <LinkButton href="/projects/new" variant="primary">
+            <Plus size={15} /> New project
+          </LinkButton>
+        }
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div className="mb-8 grid grid-cols-4 gap-3">
+        {[
+          { label: "Active projects", value: String(open.length) },
+          { label: "Quotes in progress", value: rupeesShort(pipeline), sub: "incl. GST" },
+          { label: "Expected profit on open quotes", value: rupeesShort(expectedProfit) },
+          { label: "Average margin", value: `${avgMargin.toFixed(1)}%`, sub: approved.length ? `${rupeesShort(won)} approved` : undefined },
+        ].map((s) => (
+          <Card key={s.label} className="px-4 py-3.5">
+            <div className="text-xs text-ink-3">{s.label}</div>
+            <div className="tabular mt-1 text-xl font-semibold tracking-tight">{s.value}</div>
+            {s.sub && <div className="text-xs text-ink-3">{s.sub}</div>}
+          </Card>
+        ))}
+      </div>
+
+      <SectionTitle actions={projects.length > 0 && <LinkButton href="/projects" variant="ghost" size="sm">View all</LinkButton>}>
+        Recent projects
+      </SectionTitle>
+      {projects.length === 0 ? (
+        <EmptyState
+          title="No projects yet"
+          body="Create your first project, or load a sample 3BHK project to see how a quotation comes together."
+          action={
+            <>
+              <Button onClick={loadSample}>Load sample project</Button>
+              <LinkButton href="/projects/new" variant="primary">
+                New project
+              </LinkButton>
+            </>
+          }
+        />
+      ) : (
+        <ProjectTable projects={projects.slice(0, 6)} />
+      )}
+
+      <div className="mt-10 grid grid-cols-4 gap-3 text-sm">
+        {[
+          ["1", "Brief", "Client, property and rooms"],
+          ["2", "Scope", "What's included and excluded, room by room"],
+          ["3", "Pricing", "Rates from your library, maths done for you"],
+          ["4", "Proposal", "Check for gaps, then export the PDF"],
+        ].map(([n, t, d]) => (
+          <div key={n} className="rounded-lg border border-line px-4 py-3">
+            <div className="text-xs text-ink-3">Step {n}</div>
+            <div className="font-medium">{t}</div>
+            <div className="text-xs text-ink-3">{d}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

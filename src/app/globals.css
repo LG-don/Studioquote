@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-ink: #1c1b19;
+  --color-ink-2: #4a4843;
+  --color-ink-3: #85827b;
+  --color-line: #e7e5e0;
+  --color-line-2: #d9d6cf;
+  --color-canvas: #fafaf8;
+  --color-panel: #ffffff;
+  --color-hover: #f3f2ee;
+  --color-accent: #2f4a3a; /* deep green — architectural, calm */
+  --color-accent-soft: #e8efe9;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Spreadsheet-style cells. In a layer so Tailwind width utilities (w-16 etc.) can override. */
+@layer components {
+.cell-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 13px;
+  outline: none;
+}
+.cell-input:hover {
+  border-color: var(--color-line);
+}
+.cell-input:focus {
+  border-color: var(--color-accent);
+  background: white;
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+.cell-input.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cell-input.empty {
+  background: #fdf6e7;
+}
+
+}
+
+::selection {
+  background: var(--color-accent-soft);
 }
