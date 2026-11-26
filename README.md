@@ -18,7 +18,7 @@ Clients only ever see **final rates**. Your cost, overheads and profit stay inte
 You need [Node.js 20+](https://nodejs.org).
 
 ```bash
-git clone https://github.com/LG-don/studioquote.git
+git clone https://github.com/LG-don/Studioquote.git
 cd studioquote
 npm install
 npm run dev
