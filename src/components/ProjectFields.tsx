@@ -10,7 +10,7 @@ type P = Pick<
   Project,
   | "name" | "clientName" | "clientPhone" | "clientEmail" | "clientAddress" | "location" | "clientState"
   | "propertyType" | "carpetArea" | "projectType" | "budget" | "description" | "requirements" | "rooms"
-  | "bedrooms" | "bathrooms" | "balconies"
+  | "bedrooms" | "bathrooms" | "balconies" | "hiddenRoomSuggestions"
 >;
 
 const numCls =
@@ -26,7 +26,15 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
-export function ProjectFields<T extends P>({ value, onChange }: { value: T; onChange: (patch: Partial<P>) => void }) {
+export function ProjectFields<T extends P>({
+  value,
+  onChange,
+  onRenameRoom,
+}: {
+  value: T;
+  onChange: (patch: Partial<P>) => void;
+  onRenameRoom?: (from: string, to: string) => void;
+}) {
   const residential = isResidentialType(value.propertyType);
   const typeOptions = PROPERTY_TYPES.includes(value.propertyType) ? PROPERTY_TYPES : [value.propertyType, ...PROPERTY_TYPES];
 
@@ -66,11 +74,23 @@ export function ProjectFields<T extends P>({ value, onChange }: { value: T; onCh
         </div>
       </Section>
 
-      <Section title="Rooms in this quote" hint="Tap the rooms you're working on. Only these appear in the quote.">
+      <Section title="Rooms in this quote" hint="Tap the rooms you're working on — only these appear in the quote. Click a chosen room to rename it (e.g. Bedroom 3 → Kids Bedroom).">
         <RoomPicker
           rooms={value.rooms}
-          suggestions={roomSuggestions(value.propertyType, value.bedrooms, value.bathrooms, value.balconies)}
+          suggestions={roomSuggestions(value.propertyType, value.bedrooms, value.bathrooms, value.balconies).filter(
+            (s) => !(value.hiddenRoomSuggestions ?? []).includes(s),
+          )}
           onChange={(rooms) => onChange({ rooms })}
+          onRename={(from, to) => {
+            // The renamed room takes the place of its suggestion, so stop offering the old name.
+            const hiddenRoomSuggestions = [...new Set([...(value.hiddenRoomSuggestions ?? []), from])];
+            if (onRenameRoom) {
+              onRenameRoom(from, to);
+              onChange({ hiddenRoomSuggestions });
+            } else {
+              onChange({ rooms: value.rooms.map((r) => (r === from ? to : r)), hiddenRoomSuggestions });
+            }
+          }}
         />
       </Section>
 
@@ -138,8 +158,28 @@ function CountField({ label, value, onChange }: { label: string; value: number |
 }
 
 /** The designer picks rooms; suggestions are only suggestions. */
-export function RoomPicker({ rooms, suggestions, onChange }: { rooms: string[]; suggestions: string[]; onChange: (r: string[]) => void }) {
+export function RoomPicker({
+  rooms,
+  suggestions,
+  onChange,
+  onRename,
+}: {
+  rooms: string[];
+  suggestions: string[];
+  onChange: (r: string[]) => void;
+  onRename?: (from: string, to: string) => void;
+}) {
   const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const commitRename = () => {
+    const to = editText.trim();
+    if (editing && to && to !== editing && !rooms.includes(to)) {
+      if (onRename) onRename(editing, to);
+      else onChange(rooms.map((r) => (r === editing ? to : r)));
+    }
+    setEditing(null);
+  };
   const add = (name: string) => {
     const n = name.trim();
     if (n && !rooms.includes(n)) onChange([...rooms, n]);
@@ -149,15 +189,43 @@ export function RoomPicker({ rooms, suggestions, onChange }: { rooms: string[]; 
     <div className="space-y-3">
       <div className="flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-lg border border-line bg-white p-1.5">
         {rooms.length === 0 && <span className="px-1.5 text-[13px] text-ink-3">No rooms yet — tap suggestions below or type a room name.</span>}
-        {rooms.map((r) => (
+        {rooms.map((r) =>
+          editing === r ? (
+            <input
+              key={r}
+              autoFocus
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitRename();
+                }
+                if (e.key === "Escape") setEditing(null);
+              }}
+              className="h-[30px] w-40 rounded-md border border-ink bg-white px-2.5 text-[13px] outline-none"
+              aria-label={`Rename ${r}`}
+            />
+          ) : (
           <span key={r} className="inline-flex items-center gap-1 rounded-md bg-ink py-1 pl-2.5 pr-1 text-[13px] text-white">
             <Check size={12} />
-            {r}
+            <button
+              onClick={() => {
+                setEditing(r);
+                setEditText(r);
+              }}
+              className="rounded px-0.5 hover:underline"
+              title="Click to rename"
+            >
+              {r}
+            </button>
             <button onClick={() => onChange(rooms.filter((x) => x !== r))} className="rounded p-0.5 text-white/70 hover:bg-white/15 hover:text-white" aria-label={`Remove ${r}`}>
               <X size={12} />
             </button>
           </span>
-        ))}
+          ),
+        )}
         <span className="inline-flex items-center gap-1">
           <input
             value={draft}

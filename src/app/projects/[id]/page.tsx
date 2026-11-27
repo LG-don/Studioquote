@@ -91,7 +91,25 @@ export default function BriefPage() {
             />
           </div>
         </section>
-        <ProjectFields value={project} onChange={(patch) => update((p) => ({ ...p, ...patch }))} />
+        <ProjectFields
+          value={project}
+          onChange={(patch) => update((p) => ({ ...p, ...patch }))}
+          onRenameRoom={(from, to) =>
+            update((p) => {
+              const roomSizes = { ...(p.roomSizes ?? {}) };
+              if (roomSizes[from]) {
+                roomSizes[to] = roomSizes[from];
+                delete roomSizes[from];
+              }
+              return {
+                ...p,
+                rooms: p.rooms.map((r) => (r === from ? to : r)),
+                items: p.items.map((i) => (i.room === from ? { ...i, room: to } : i)),
+                roomSizes,
+              };
+            })
+          }
+        />
         <div className="mt-8 flex justify-end border-t border-line pt-5">
           <LinkButton href={`/projects/${project.id}/quote`} variant="primary">
             Next: quote <ArrowRight size={15} />

@@ -108,3 +108,16 @@ describe("ScopeGuard and engagement", () => {
     expect(f.some((x) => /quantity/i.test(x.title))).toBe(false);
   });
 });
+
+describe("room suggestions", () => {
+  it("does not suggest extra bedroom types once bedrooms are counted", async () => {
+    const { roomSuggestions } = await import("./constants");
+    const s = roomSuggestions("Apartment", 4, 4, 5);
+    expect(s).toContain("Bedroom 4");
+    expect(s).toContain("Balcony 5");
+    expect(s).not.toContain("Kids Bedroom");
+    expect(s).not.toContain("Guest Bedroom");
+    expect(s).not.toContain("Study");
+    expect(roomSuggestions("Apartment", null, null, null)).toContain("Kids Bedroom");
+  });
+});

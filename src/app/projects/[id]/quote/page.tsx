@@ -12,7 +12,7 @@ import { applyRoomSizes, setRoomSize } from "@/lib/measure";
 import { DESIGN_ROOM, designServiceItems, GENERAL_ROOM, generateFromTemplates, itemFromRate } from "@/lib/templates";
 import { calcProject, delegatedCategories } from "@/lib/calc";
 import type { Rate, RoomSize, ScopeItem } from "@/lib/types";
-import { RatePicker } from "@/components/RatePicker";
+import { RatePickerDialog } from "@/components/RatePicker";
 import { DraftModal } from "@/components/quote/DraftModal";
 import { ImportModal } from "@/components/quote/ImportModal";
 import { PricingPanel } from "@/components/quote/PricingPanel";
@@ -176,7 +176,7 @@ function QuotePage() {
         <div>
           <h2 className="text-base font-semibold">Quote</h2>
           <p className="text-sm text-ink-3">
-            Every line carries its scope (click a line to see what&apos;s included) and its price. Client rates include your overheads and profit.
+            {engagement === "design_only" ? "Your design fees, line by line. Click a line to see what it covers." : "Every line carries its scope (click a line to see what's included) and its price. Client rates include your overheads and profit."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -230,7 +230,7 @@ function QuotePage() {
               </>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-[13px] text-emerald-700">
-                <ListChecks size={14} /> All {project.items.length} lines priced
+                <ListChecks size={14} /> {project.items.length === 1 ? "The only line is priced" : `All ${project.items.length} lines priced`}
               </span>
             )}
           </div>
@@ -307,23 +307,9 @@ function QuotePage() {
                         )}
                         <span className="ml-auto flex items-center gap-3">
                           {groupBy === "room" && (
-                            <span className="relative">
-                              <Button size="sm" variant="ghost" onClick={() => setPickerRoom(pickerRoom === g.key ? null : g.key)}>
-                                <Plus size={13} /> Add line
-                              </Button>
-                              {pickerRoom === g.key && (
-                                <div className="absolute right-0 top-8 z-40">
-                                  <RatePicker rates={rates} onPick={(r) => addFromRate(g.key, r)} onClose={() => setPickerRoom(null)} />
-                                  <button
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onClick={() => addBlank(g.key)}
-                                    className="mt-1 w-[440px] rounded-lg border border-line bg-white px-3 py-2 text-left text-sm shadow-lg hover:bg-hover"
-                                  >
-                                    + Blank line (not in library)
-                                  </button>
-                                </div>
-                              )}
-                            </span>
+                            <Button size="sm" variant="ghost" onClick={() => setPickerRoom(g.key)}>
+                              <Plus size={13} /> Add line
+                            </Button>
                           )}
                           <span className="tabular min-w-[96px] text-right font-semibold">{rupees(sub)}</span>
                         </span>
@@ -407,6 +393,16 @@ function QuotePage() {
           </div>
         </div>
       )}
+
+      <RatePickerDialog
+        open={pickerRoom !== null}
+        title={`Add a line to ${pickerRoom ?? ""}`}
+        subtitle="Pick from your rate library — rates and scope wording come with it."
+        rates={pickerRoom === DESIGN_ROOM ? rates.filter((r) => r.category === "Design services") : rates}
+        onPick={(r) => pickerRoom && addFromRate(pickerRoom, r)}
+        onBlank={() => pickerRoom && addBlank(pickerRoom)}
+        onClose={() => setPickerRoom(null)}
+      />
 
       <Modal open={pricingOpen} onClose={() => setPricingOpen(false)} title="Markup, discount & GST" wide>
         <PricingPanel calc={calc} />

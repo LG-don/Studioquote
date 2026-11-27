@@ -128,6 +128,7 @@ export interface Project {
   description: string;
   requirements: string;
   rooms: string[];
+  hiddenRoomSuggestions?: string[]; // suggestions the designer renamed away (e.g. Bedroom 3 → Kids Bedroom)
   roomSizes?: Record<string, RoomSize>;
   files: FileMeta[];
   items: ScopeItem[];

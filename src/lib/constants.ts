@@ -100,7 +100,10 @@ export function roomSuggestions(propertyType: string, bedrooms?: number | null, 
   if (!baths) out.push("Bathroom 1");
   const balc = Math.max(0, Math.min(balconies ?? 0, 6));
   for (let i = 1; i <= balc; i++) out.push(balc === 1 ? "Balcony" : `Balcony ${i}`);
-  out.push("Kids Bedroom", "Guest Bedroom", "Study", "Pooja", "Utility", "Powder Room");
+  // Kids / guest rooms and a study are usually one of the counted bedrooms — rename
+  // a bedroom instead. Only suggest them when no bedroom count was given.
+  if (!beds) out.push("Kids Bedroom", "Guest Bedroom", "Study");
+  out.push("Pooja", "Utility", "Powder Room");
   if (/villa|house/i.test(propertyType)) out.push("Family Lounge", "Staircase", "Terrace");
   out.push("General / site");
   return [...new Set(out)];

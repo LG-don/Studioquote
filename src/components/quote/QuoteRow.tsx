@@ -7,7 +7,7 @@ import { CATEGORIES } from "@/lib/constants";
 import { num, rupees } from "@/lib/format";
 import { BASIS_LABEL, quantityFor } from "@/lib/measure";
 import type { Rate, RoomSize, ScopeItem } from "@/lib/types";
-import { RatePicker } from "@/components/RatePicker";
+import { RatePickerDialog } from "@/components/RatePicker";
 import { Badge, Button, cx, Field, Input, NumberInput, Select, Textarea } from "@/components/ui";
 
 export interface QuoteRowProps {
@@ -142,19 +142,18 @@ export function QuoteRow(p: QuoteRowProps) {
               <Trash2 size={13} />
             </button>
           </div>
-          {picker && (
-            <div className="absolute right-0 top-8 z-40 text-left">
-              <RatePicker
-                rates={p.rates}
-                initialQuery={it.item.split(" ").slice(0, 2).join(" ")}
-                onPick={(r) => {
-                  p.onChange({ rateId: r.id, materialRate: r.materialRate, labourRate: r.labourRate, unit: r.unit });
-                  setPicker(false);
-                }}
-                onClose={() => setPicker(false)}
-              />
-            </div>
-          )}
+          <RatePickerDialog
+            open={picker}
+            title={`Rate for “${it.item || "this line"}”`}
+            subtitle="Replaces this line's material and labour rates with the library rate."
+            rates={p.rates}
+            initialQuery={it.item.split(" ").slice(0, 2).join(" ")}
+            onPick={(r) => {
+              p.onChange({ rateId: r.id, materialRate: r.materialRate, labourRate: r.labourRate, unit: r.unit });
+              setPicker(false);
+            }}
+            onClose={() => setPicker(false)}
+          />
         </td>
       </tr>
       {expanded && (
