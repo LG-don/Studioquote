@@ -10,7 +10,7 @@ import { exportProjectWorkbook } from "@/lib/excel";
 import { rupees } from "@/lib/format";
 import { uid } from "@/lib/ids";
 import { applyRoomSizes, setRoomSize } from "@/lib/measure";
-import { itemFromRate } from "@/lib/templates";
+import { GENERAL_ROOM, generateFromTemplates, itemFromRate } from "@/lib/templates";
 import type { Rate, RoomSize, ScopeItem } from "@/lib/types";
 import { RatePicker } from "@/components/RatePicker";
 import { DraftModal } from "@/components/quote/DraftModal";
@@ -124,6 +124,12 @@ function QuotePage() {
     focusItem(it.id, true);
   };
 
+  // Opt-in: typical lines for one room, with library rates and standard scope wording.
+  const suggestFor = (room: string) => {
+    const items = room === GENERAL_ROOM ? generateFromTemplates([], rates, true) : generateFromTemplates([room], rates, false);
+    addItems(room, items);
+  };
+
   const nextAttention = () => {
     if (!attentionItems.length) return;
     const it = attentionItems[nextIdx.current % attentionItems.length];
@@ -163,8 +169,8 @@ function QuotePage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary" onClick={() => setDraftOpen(true)}>
-            <Wand2 size={15} /> Draft lines
+          <Button onClick={() => setDraftOpen(true)}>
+            <Wand2 size={15} /> Suggest lines
           </Button>
           <Button onClick={() => setImportOpen(true)}>
             <Upload size={14} /> From Excel
@@ -238,21 +244,13 @@ function QuotePage() {
         </div>
       )}
 
-      {project.items.length === 0 ? (
-        <EmptyState
-          title="Start your quote"
-          body="Draft typical lines for each room in one click (with your library rates), paste rows from Excel, or add lines one by one."
-          action={
-            <>
-              <Button onClick={() => setImportOpen(true)}>
-                <Upload size={14} /> From Excel
-              </Button>
-              <Button variant="primary" onClick={() => setDraftOpen(true)}>
-                <Wand2 size={15} /> Draft lines for my rooms
-              </Button>
-            </>
-          }
-        />
+      {project.items.length === 0 && (
+        <div className="mb-4 rounded-lg border border-line bg-white px-4 py-3 text-sm text-ink-2">
+          Add lines to each room below — pick from your rate library, paste from Excel, or use <em>Suggest lines</em> on a room to start from typical items.
+        </div>
+      )}
+      {rooms.length === 0 ? (
+        <EmptyState title="No rooms yet" body="Add rooms on the Details tab, then come back to build the quote." />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line bg-white">
           <table className="w-full min-w-[900px] border-collapse text-[13px]">
@@ -321,7 +319,11 @@ function QuotePage() {
                   {g.items.length === 0 && (
                     <tr className="border-b border-line">
                       <td colSpan={detailed ? 9 : 7} className="py-3 pl-9 text-[13px] text-ink-3">
-                        No lines yet — use <em>Add line</em> or <em>Draft lines</em>.
+                        No lines yet.{" "}
+                        <button onClick={() => setPickerRoom(g.key)} className="text-ink underline-offset-2 hover:underline">Add a line</button>
+                        {" or "}
+                        <button onClick={() => suggestFor(g.key)} className="text-ink underline-offset-2 hover:underline">suggest typical lines</button>
+                        {" for this room."}
                       </td>
                     </tr>
                   )}

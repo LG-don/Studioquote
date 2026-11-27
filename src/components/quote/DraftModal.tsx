@@ -99,7 +99,7 @@ export function DraftModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Draft scope of work"
+      title="Suggest typical lines"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

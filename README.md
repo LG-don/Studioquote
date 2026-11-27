@@ -5,7 +5,7 @@
 StudioQuote takes a project through three steps:
 
 1. **Details** — client, property, rooms, requirements, and files (drawings, old BOQs, rate lists, reference images).
-2. **Quote** — one room-by-room table. Every line carries its price *and* its scope (click a line to see what is included, not included, installation, assumptions and what the client provides). New projects start with draft lines from standard templates; AI drafting from the brief is optional. Enter a room's size once and floor, ceiling, wall and skirting quantities fill in from your measurements. Rates come from your own library; overheads, profit, contingency, discount and GST use fixed formulas, and a bar at the bottom always shows what the client pays and what you earn.
+2. **Quote** — one room-by-room table. Every line carries its price *and* its scope (click a line to see what is included, not included, installation, assumptions and what the client provides). New projects start as a clean slate: add lines from your rate library, paste from Excel, or ask for typical lines room by room (templates, or AI from the brief if connected). Enter a room's size once and floor, ceiling, wall and skirting quantities fill in from your measurements. Rates come from your own library; overheads, profit, contingency, discount and GST use fixed formulas, and a bar at the bottom always shows what the client pays and what you earn.
 3. **Check & send** — ScopeGuard lists gaps and ambiguities before the client sees them, then download the PDF or send it on WhatsApp. Every export is saved as a version (R1, R2…) under **History** so revisions can be compared.
 
 ## What's new (UX update, Nov 2026)
@@ -15,7 +15,7 @@ Based on [competitor research](docs/competitor-research.md) — the most common 
 - Scope and pricing merged into a single **Quote** screen.
 - **Room sizes → quantities**: L × W × H once per room; linked lines update automatically (you can override any line).
 - **Quantity calculator** (L × W × count) on every line.
-- New projects **start with a draft** for their rooms instead of an empty table.
+- New projects start **clean**; *Suggest typical lines* is available per room when you want a head start.
 - **"Needs a quantity or rate"** filter and a *Next* button that walks you through what's left.
 - **Single cost rate / material + labour** column toggle.
 - **Paste rows from Excel** directly; **copy a previous project** as a starting point.
