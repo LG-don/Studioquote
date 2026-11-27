@@ -2,12 +2,25 @@
 
 **From client brief to a clear scope of work and an accurate quotation — for small interior design studios and independent designers in India.**
 
-StudioQuote takes a project through four steps:
+StudioQuote takes a project through three steps:
 
-1. **Brief** — client, property, rooms, requirements, and files (drawings, old BOQs, rate lists, reference images).
-2. **Scope** — room-by-room scope of work: what is included, what is not, installation, assumptions, and what the client must provide. Drafted from standard templates (instant) or by AI from the brief (optional). Missing details are flagged, never guessed.
-3. **Pricing** — spreadsheet-style BOQ. Rates come from your own rate library. Overheads, profit, contingency, discount and GST are calculated with fixed formulas. An internal panel shows exactly what you will earn.
-4. **Check & proposal** — ScopeGuard lists gaps and ambiguities before the client sees them, then you download a professional PDF proposal. Every download is saved as a version (R1, R2…) so revisions can be compared.
+1. **Details** — client, property, rooms, requirements, and files (drawings, old BOQs, rate lists, reference images).
+2. **Quote** — one room-by-room table. Every line carries its price *and* its scope (click a line to see what is included, not included, installation, assumptions and what the client provides). New projects start with draft lines from standard templates; AI drafting from the brief is optional. Enter a room's size once and floor, ceiling, wall and skirting quantities fill in from your measurements. Rates come from your own library; overheads, profit, contingency, discount and GST use fixed formulas, and a bar at the bottom always shows what the client pays and what you earn.
+3. **Check & send** — ScopeGuard lists gaps and ambiguities before the client sees them, then download the PDF or send it on WhatsApp. Every export is saved as a version (R1, R2…) under **History** so revisions can be compared.
+
+## What's new (UX update, Nov 2026)
+
+Based on [competitor research](docs/competitor-research.md) — the most common complaint about interior design software is "too many menus and steps":
+
+- Scope and pricing merged into a single **Quote** screen.
+- **Room sizes → quantities**: L × W × H once per room; linked lines update automatically (you can override any line).
+- **Quantity calculator** (L × W × count) on every line.
+- New projects **start with a draft** for their rooms instead of an empty table.
+- **"Needs a quantity or rate"** filter and a *Next* button that walks you through what's left.
+- **Single cost rate / material + labour** column toggle.
+- **Paste rows from Excel** directly; **copy a previous project** as a starting point.
+- **WhatsApp sharing** (shares the PDF on phones; opens a ready message on desktop).
+- Sticky totals bar with markup, discount and GST in one panel; works on phones and tablets.
 
 Clients only ever see **final rates**. Your cost, overheads and profit stay internal.
 
@@ -109,16 +122,16 @@ src/
     page.tsx                     Dashboard
     projects/                    Projects list, new project
     projects/[id]/               Brief (+ files)
-    projects/[id]/scope/         Scope builder (templates / AI)
-    projects/[id]/pricing/       BOQ builder, markup, GST, profit panel, Excel import/export
-    projects/[id]/proposal/      ScopeGuard + PDF preview/export + payment, timeline, terms
-    projects/[id]/versions/      Saved versions and comparison
+    projects/[id]/quote/         Quote: room-by-room lines with scope details, sizes, markup & GST
+    projects/[id]/proposal/      Check & send: ScopeGuard, PDF preview/export, WhatsApp, payment, timeline, terms
+    projects/[id]/versions/      History: saved versions and comparison
     rates/                       Rate library
     settings/                    Studio branding, GST, defaults
     login/                       Sign-in (connected mode)
     api/ai/scope, api/ai/review  Server-side AI routes
   lib/
     calc.ts                      Deterministic quotation maths
+    measure.ts                   Quantities from room measurements
     scopeguard.ts                Rule-based gap detection
     templates.ts                 Room templates and standard scope wording
     store.ts                     Storage: DemoStore (browser) / CloudStore (Supabase)
@@ -140,7 +153,7 @@ npm run build
 
 ## Known limitations / next steps
 
-- Quantities are not read from drawings — they must be measured and entered (by design for v1).
+- Quantities are not read from drawings — enter room sizes or measure lines (by design for v1). Room-size quantities don't deduct doors and windows.
 - PDF drawings are stored for reference; only spreadsheets are read as AI context.
 - One user per studio account; team members and roles are not yet supported.
 - No formal variation orders yet — use versions to track revisions.

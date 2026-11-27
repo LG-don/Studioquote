@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { calcQuote } from "./calc";
 import { newProject, sampleProject, sampleSettings } from "./defaults";
-import { detectColumns, rowsToItems } from "./excel";
+import { detectColumns, parsePasted, rowsToItems } from "./excel";
+import { applyRoomSizes, quantityFor } from "./measure";
 import { SAMPLE_RATES } from "./sampleRates";
 import { runScopeGuard } from "./scopeguard";
 import { generateFromTemplates } from "./templates";
@@ -58,5 +59,37 @@ describe("Excel import", () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toMatchObject({ item: "Gypsum ceiling plain", qty: 120, materialRate: 70, labourRate: 35, category: "False ceiling", room: "Living" });
     expect(items[1].qty).toBe(80);
+  });
+});
+
+describe("paste from Excel", () => {
+  it("parses rows without a header", () => {
+    const items = parsePasted("Wardrobe\t42\tsq.ft\t1100\t260\nLoft\t14\tsq.ft\t700\t170\n", "Bedroom 2");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({ item: "Wardrobe", qty: 42, unit: "sq.ft", materialRate: 1100, labourRate: 260, room: "Bedroom 2" });
+  });
+  it("uses headings when present", () => {
+    const items = parsePasted("Description\tUnit\tQty\tRate\nTV unit\tr.ft\t8\t5100", "Living");
+    expect(items[0]).toMatchObject({ item: "TV unit", qty: 8, unit: "r.ft", materialRate: 5100 });
+  });
+});
+
+describe("room measurements", () => {
+  const size = { l: 12, w: 10, h: 10 };
+  it("computes each basis from the entered size", () => {
+    expect(quantityFor(size, "floor")).toBe(120);
+    expect(quantityFor(size, "perimeter")).toBe(44);
+    expect(quantityFor(size, "walls")).toBe(440);
+    expect(quantityFor({ l: 12, w: 10, h: null }, "walls")).toBeNull();
+  });
+  it("only updates lines that are linked to measurements", () => {
+    const items = generateFromTemplates(["Living"], SAMPLE_RATES, false);
+    const out = applyRoomSizes(items, { Living: size });
+    const floor = out.find((i) => i.rateId === "r-fl-vitrified")!;
+    const tv = out.find((i) => i.rateId === "r-cf-tv")!;
+    expect(floor.qty).toBe(120);
+    expect(tv.qty).toBeNull();
+    const manual = applyRoomSizes([{ ...floor, qty: 99, qtyAuto: false }], { Living: size });
+    expect(manual[0].qty).toBe(99);
   });
 });

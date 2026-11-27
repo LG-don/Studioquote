@@ -79,12 +79,12 @@ export default function BriefPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-[1fr_340px] gap-10">
+    <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_340px]">
       <div>
         <ProjectFields value={project} onChange={(patch) => update((p) => ({ ...p, ...patch }))} />
         <div className="mt-8 flex justify-end border-t border-line pt-5">
-          <LinkButton href={`/projects/${project.id}/scope`} variant="primary">
-            Next: scope of work <ArrowRight size={15} />
+          <LinkButton href={`/projects/${project.id}/quote`} variant="primary">
+            Next: quote <ArrowRight size={15} />
           </LinkButton>
         </div>
       </div>
@@ -149,8 +149,8 @@ export default function BriefPage() {
           )}
         </Card>
         <p className="mt-3 text-xs leading-relaxed text-ink-3">
-          Drawings and images are stored with the project for reference. Spreadsheets are read so AI drafting can use them, and existing BOQs can be imported on the Pricing tab.
-          Quantities are never read from drawings automatically — measure and enter them on the Pricing tab.
+          Drawings and images are stored with the project for reference. Spreadsheets are read so AI drafting can use them, and existing BOQs can be added on the Quote tab.
+          Quantities are never read from drawings automatically — enter room sizes or measure each line on the Quote tab.
         </p>
       </aside>
     </div>

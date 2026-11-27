@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertOctagon, AlertTriangle, CheckCircle2, Download, Info, RefreshCw, Sparkles } from "lucide-react";
+import { AlertOctagon, AlertTriangle, CheckCircle2, Download, Info, MessageCircle, RefreshCw, Sparkles } from "lucide-react";
 import { calcQuote } from "@/lib/calc";
 import { useData, useProject } from "@/lib/data";
 import { downloadBlob, renderProposalPdf } from "@/lib/pdfExport";
+import { rupees } from "@/lib/format";
 import { runScopeGuard, type Finding, type Severity } from "@/lib/scopeguard";
 import { authHeaders } from "@/lib/supabase";
 import { makeVersion, sameAsLatest } from "@/lib/versions";
@@ -18,7 +19,7 @@ const SEV: Record<Severity, { icon: typeof Info; cls: string; label: string }> =
   info: { icon: Info, cls: "text-sky-700", label: "To confirm" },
 };
 
-const TAB_PATH: Record<Finding["target"], string> = { brief: "", scope: "/scope", pricing: "/pricing", proposal: "/proposal" };
+const TAB_PATH: Record<Finding["target"], string> = { brief: "", quote: "/quote", proposal: "/proposal" };
 
 export default function ProposalPage() {
   const { project, update, flush } = useProject();
@@ -63,24 +64,62 @@ export default function ProposalPage() {
     return () => clearTimeout(t);
   }, [project, settings, calc]);
 
+  // Builds the final PDF. Each export is saved as a version so revisions can be compared.
+  const preparePdf = async () => {
+    if (!settings) return null;
+    if (counts.blocker > 0 && !confirm(`ScopeGuard found ${counts.blocker} issue(s) that should be fixed before sending. Continue anyway?`)) return null;
+    let p = project;
+    if (!sameAsLatest(project)) {
+      const v = makeVersion(project, "Exported as PDF");
+      p = { ...project, versions: [...project.versions, v] };
+      update(() => p);
+      await flush();
+    }
+    const rev = p.versions[p.versions.length - 1]?.number ?? 0;
+    const blob = await renderProposalPdf({ project: p, settings, calc, revision: rev });
+    const safe = (x: string) => x.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
+    return { blob, filename: `${safe(p.quoteNumber)}-R${rev}-${safe(p.name)}.pdf`, rev };
+  };
+
   const exportPdf = async () => {
-    if (!settings) return;
-    if (counts.blocker > 0 && !confirm(`ScopeGuard found ${counts.blocker} issue(s) that should be fixed before sending. Download anyway?`)) return;
     setExporting(true);
     try {
-      let p = project;
-      if (!sameAsLatest(project)) {
-        const v = makeVersion(project, "Exported as PDF");
-        p = { ...project, versions: [...project.versions, v] };
-        update(() => p);
-        await flush();
-      }
-      const rev = p.versions[p.versions.length - 1]?.number ?? 0;
-      const blob = await renderProposalPdf({ project: p, settings, calc, revision: rev });
-      const safe = (x: string) => x.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
-      downloadBlob(blob, `${safe(p.quoteNumber)}-R${rev}-${safe(p.name)}.pdf`);
+      const out = await preparePdf();
+      if (out) downloadBlob(out.blob, out.filename);
     } catch (e) {
       alert(`Could not create PDF: ${(e as Error).message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const [shareNote, setShareNote] = useState<string | null>(null);
+  const shareWhatsApp = async () => {
+    setExporting(true);
+    setShareNote(null);
+    try {
+      const out = await preparePdf();
+      if (!out) return;
+      const validTill = new Date(Date.now() + project.quote.validityDays * 86400000).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const text =
+        `Hello ${project.clientName.replace(/\s*\(sample\)/i, "") || ""},\n\n` +
+        `Please find our proposal ${project.quoteNumber} R${out.rev} for ${project.name}.\n` +
+        `Total: ${rupees(calc.grandTotal)}${project.quote.gstMode === "none" ? "" : " (incl. GST)"}, valid till ${validTill}.\n\n` +
+        `Happy to walk you through it.\n${settings?.studioName ?? ""}`;
+      const file = new File([out.blob], out.filename, { type: "application/pdf" });
+      // Phones: share the PDF itself through the system share sheet (WhatsApp included).
+      if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text, title: out.filename }).catch(() => {});
+        return;
+      }
+      // Desktop: download the PDF and open WhatsApp with the message ready.
+      downloadBlob(out.blob, out.filename);
+      const digits = project.clientPhone.replace(/\D/g, "");
+      const phone = digits.length === 10 ? `91${digits}` : digits;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+      setShareNote(`The PDF was downloaded — attach ${out.filename} in the WhatsApp chat that just opened.`);
+    } catch (e) {
+      alert(`Could not share: ${(e as Error).message}`);
     } finally {
       setExporting(false);
     }
@@ -102,7 +141,7 @@ export default function ProposalPage() {
       if (!res.ok) throw new Error(json.error || "AI review failed");
       setAiFindings(
         (json.findings as { severity: "warning" | "info"; title: string; detail: string }[]).map((f, i) => ({
-          id: `ai-${i}`, severity: f.severity, title: f.title, detail: f.detail, target: "scope", source: "ai",
+          id: `ai-${i}`, severity: f.severity, title: f.title, detail: f.detail, target: "quote", source: "ai",
         })),
       );
     } catch (e) {
@@ -115,7 +154,7 @@ export default function ProposalPage() {
   const visible = findings.filter((f) => showInfo || f.severity !== "info");
 
   return (
-    <div className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-6">
+    <div className="mx-auto grid max-w-[1320px] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       <div className="space-y-5">
         {/* ScopeGuard */}
         <Card className="p-4">
@@ -159,7 +198,7 @@ export default function ProposalPage() {
                 return (
                   <li key={f.id}>
                     <Link
-                      href={`/projects/${project.id}${TAB_PATH[f.target]}`}
+                      href={`/projects/${project.id}${TAB_PATH[f.target]}${f.itemId && f.target === "quote" ? `?item=${f.itemId}` : ""}`}
                       className="flex items-start gap-2.5 px-3 py-2 hover:bg-hover"
                     >
                       <S.icon size={14} className={cx("mt-0.5 shrink-0", S.cls)} />
@@ -215,7 +254,7 @@ export default function ProposalPage() {
       </div>
 
       {/* Preview */}
-      <div className="sticky top-4 self-start">
+      <div className="self-start lg:sticky lg:top-4">
         <div className="mb-3 flex items-center justify-between">
           <SectionTitle>
             Proposal preview {rendering && <Spinner />}
@@ -223,6 +262,9 @@ export default function ProposalPage() {
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => update((p) => ({ ...p }))} title="Re-render preview">
               <RefreshCw size={13} />
+            </Button>
+            <Button onClick={shareWhatsApp} disabled={exporting || !settings} title="Send the PDF on WhatsApp">
+              <MessageCircle size={14} /> WhatsApp
             </Button>
             <Button variant="primary" onClick={exportPdf} disabled={exporting || !settings}>
               <Download size={15} /> {exporting ? "Preparing…" : "Download PDF"}
@@ -241,6 +283,7 @@ export default function ProposalPage() {
             </div>
           )}
         </div>
+        {shareNote && <p className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800">{shareNote}</p>}
         <p className="mt-2 text-xs text-ink-3">
           Clients see final rates only. Downloading saves a version (R{project.versions.length + (sameAsLatest(project) ? 0 : 1)}) so you can track revisions.
         </p>

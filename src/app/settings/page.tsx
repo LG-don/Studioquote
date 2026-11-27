@@ -42,7 +42,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
       <PageHeader
         title="Settings"
         subtitle="Studio details and defaults for new quotations. Existing projects keep their own copies."
@@ -52,10 +52,10 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <Card className="p-5">
           <h3 className="mb-4 text-sm font-semibold">Studio</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Studio name"><Input value={s.studioName} onChange={(e) => patch({ studioName: e.target.value })} /></Field>
             <Field label="Tagline"><Input value={s.tagline} onChange={(e) => patch({ tagline: e.target.value })} /></Field>
-            <Field label="Address" className="col-span-2"><Input value={s.address} onChange={(e) => patch({ address: e.target.value })} /></Field>
+            <Field label="Address" className="sm:col-span-2"><Input value={s.address} onChange={(e) => patch({ address: e.target.value })} /></Field>
             <Field label="Phone"><Input value={s.phone} onChange={(e) => patch({ phone: e.target.value })} /></Field>
             <Field label="Email"><Input value={s.email} onChange={(e) => patch({ email: e.target.value })} /></Field>
             <Field label="Website"><Input value={s.website} onChange={(e) => patch({ website: e.target.value })} /></Field>
@@ -77,7 +77,7 @@ export default function SettingsPage() {
 
         <Card className="p-5">
           <h3 className="mb-4 text-sm font-semibold">Tax & numbering</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="GSTIN" hint="Leave blank if not registered — new quotes will then default to no GST.">
               <Input value={s.gstin} onChange={(e) => patch({ gstin: e.target.value.toUpperCase() })} placeholder="27ABCDE1234F1Z5" />
             </Field>
@@ -96,7 +96,7 @@ export default function SettingsPage() {
         <Card className="p-5">
           <h3 className="mb-1 text-sm font-semibold">Pricing defaults</h3>
           <p className="mb-4 text-xs text-ink-3">Applied to new projects. You can change them per project on the Pricing tab.</p>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <Field label="Overheads %"><NumberInput value={s.defaults.overheadPct} allowNull={false} onChange={(v) => patchDefaults({ overheadPct: v ?? 0 })} className={numCls} /></Field>
             <Field label="Profit %"><NumberInput value={s.defaults.profitPct} allowNull={false} onChange={(v) => patchDefaults({ profitPct: v ?? 0 })} className={numCls} /></Field>
             <Field label="Contingency %"><NumberInput value={s.defaults.contingencyPct} allowNull={false} onChange={(v) => patchDefaults({ contingencyPct: v ?? 0 })} className={numCls} /></Field>

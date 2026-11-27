@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { calcQuote } from "@/lib/calc";
 import { useData } from "@/lib/data";
-import { sampleProject } from "@/lib/defaults";
+import { DEFAULT_SETTINGS, sampleProject } from "@/lib/defaults";
 import { rupeesShort } from "@/lib/format";
 import type { Project } from "@/lib/types";
 import { ProjectTable } from "@/components/ProjectTable";
@@ -37,7 +37,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
       <PageHeader
         title="Dashboard"
         subtitle={settings.studioName}
@@ -48,7 +48,17 @@ export default function Dashboard() {
         }
       />
 
-      <div className="mb-8 grid grid-cols-4 gap-3">
+      {settings.studioName === DEFAULT_SETTINGS.studioName && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/20 bg-accent-soft px-4 py-3">
+          <div>
+            <div className="text-sm font-medium text-accent">Set up your studio — takes 2 minutes</div>
+            <div className="text-xs text-ink-2">Add your studio name, logo and GSTIN so every proposal carries your branding and the right tax.</div>
+          </div>
+          <LinkButton href="/settings" variant="primary" size="sm">Open settings</LinkButton>
+        </div>
+      )}
+
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { label: "Active projects", value: String(open.length) },
           { label: "Quotes in progress", value: rupeesShort(pipeline), sub: "incl. GST" },
@@ -83,12 +93,11 @@ export default function Dashboard() {
         <ProjectTable projects={projects.slice(0, 6)} />
       )}
 
-      <div className="mt-10 grid grid-cols-4 gap-3 text-sm">
+      <div className="mt-10 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
         {[
-          ["1", "Brief", "Client, property and rooms"],
-          ["2", "Scope", "What's included and excluded, room by room"],
-          ["3", "Pricing", "Rates from your library, maths done for you"],
-          ["4", "Proposal", "Check for gaps, then export the PDF"],
+          ["1", "Details", "Client, property, rooms and files"],
+          ["2", "Quote", "Room-by-room lines with scope and price — quantities from room sizes"],
+          ["3", "Check & send", "Catch gaps, then download or WhatsApp the PDF"],
         ].map(([n, t, d]) => (
           <div key={n} className="rounded-lg border border-line px-4 py-3">
             <div className="text-xs text-ink-3">Step {n}</div>

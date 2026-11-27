@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { Plus, Search } from "lucide-react";
 import { useData } from "@/lib/data";
-import { sampleProject } from "@/lib/defaults";
+import { quoteNumber, sampleProject } from "@/lib/defaults";
+import { uid } from "@/lib/ids";
 import type { Project, ProjectStatus } from "@/lib/types";
 import { ProjectTable } from "@/components/ProjectTable";
 import { Button, EmptyState, Input, LinkButton, Loading, PageHeader, Select } from "@/components/ui";
 
 export default function ProjectsPage() {
-  const { store, settings } = useData();
+  const { store, settings, saveSettings } = useData();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | ProjectStatus>("");
@@ -34,8 +35,27 @@ export default function ProjectsPage() {
     load();
   };
 
+  const duplicate = async (p: Project) => {
+    const now = new Date().toISOString();
+    const copy: Project = {
+      ...JSON.parse(JSON.stringify(p)),
+      id: uid("prj"),
+      name: `${p.name || "Untitled project"} (copy)`,
+      quoteNumber: quoteNumber(settings),
+      status: "draft",
+      versions: [],
+      files: [], // files stay with the original project
+      isSample: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await store.saveProject(copy);
+    await saveSettings({ ...settings, nextQuoteNo: settings.nextQuoteNo + 1 });
+    load();
+  };
+
   return (
-    <div className="mx-auto max-w-6xl px-8 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
       <PageHeader
         title="Projects"
         subtitle={`${projects.length} project${projects.length === 1 ? "" : "s"}`}
@@ -79,7 +99,7 @@ export default function ProjectsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState title="No matching projects" />
       ) : (
-        <ProjectTable projects={filtered} onDelete={remove} />
+        <ProjectTable projects={filtered} onDelete={remove} onDuplicate={duplicate} />
       )}
     </div>
   );

@@ -4,6 +4,7 @@
 // Quantities are always left blank — they must come from measurement or drawings.
 
 import { uid } from "./ids";
+import { RATE_BASIS } from "./measure";
 import type { Rate, ScopeItem } from "./types";
 
 interface ScopeText {
@@ -133,6 +134,9 @@ export function itemFromRate(rate: Rate | undefined, rateId: string, room: strin
     rateId: rate ? rate.id : undefined,
     source,
     missing: [...(text?.missing ?? [])],
+    // Linked to room measurements when the item is measured by area or perimeter.
+    qtyBasis: RATE_BASIS[rateId],
+    qtyAuto: RATE_BASIS[rateId] ? true : undefined,
   };
 }
 

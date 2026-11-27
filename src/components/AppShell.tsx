@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, FolderOpen, LayoutGrid, LogOut, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookOpen, FolderOpen, LayoutGrid, LogOut, Menu, Settings as SettingsIcon, Sparkles, X } from "lucide-react";
 import { useData } from "@/lib/data";
 import { cx, Loading } from "./ui";
 
@@ -16,13 +17,32 @@ const NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { ready, settings, store, userEmail, ai, signOut } = useData();
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
 
   if (pathname === "/login") return <>{children}</>;
   if (!ready || !settings) return <Loading />;
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 flex h-screen w-[232px] shrink-0 flex-col border-r border-line bg-[#f6f5f2] px-3 py-4 print:hidden">
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Phone / tablet top bar */}
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-[#f6f5f2] px-4 py-2.5 md:hidden print:hidden">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="grid h-7 w-7 place-items-center rounded-md bg-ink text-[13px] font-semibold text-white">S</div>
+          <span className="text-sm font-semibold">StudioQuote</span>
+        </Link>
+        <button onClick={() => setMenuOpen(!menuOpen)} className="rounded p-1.5 hover:bg-hover" aria-label="Menu">
+          {menuOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+      </div>
+      {menuOpen && <div className="fixed inset-0 z-40 bg-ink/20 md:hidden" onClick={() => setMenuOpen(false)} />}
+      <aside
+        className={cx(
+          "z-50 flex w-[232px] shrink-0 flex-col border-r border-line bg-[#f6f5f2] px-3 py-4 print:hidden",
+          "fixed inset-y-0 left-0 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0",
+          menuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         <Link href="/" className="mb-6 flex items-center gap-2 px-2">
           <div className="grid h-7 w-7 place-items-center rounded-md bg-ink text-[13px] font-semibold text-white">S</div>
           <div className="leading-tight">

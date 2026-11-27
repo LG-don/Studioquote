@@ -24,6 +24,19 @@ export interface ScopeItem {
   rateId?: string; // link to rate library entry
   source: ItemSource;
   missing: string[]; // information flagged as missing (by templates or AI)
+  // Quantity from room measurements: when qtyAuto is true and the room has a size,
+  // qty is recalculated from the designer's own measurements (never guessed).
+  qtyBasis?: QtyBasis;
+  qtyAuto?: boolean;
+}
+
+export type QtyBasis = "floor" | "ceiling" | "walls" | "perimeter";
+
+/** Room measurements in feet, entered by the designer. */
+export interface RoomSize {
+  l: number | null;
+  w: number | null;
+  h: number | null;
 }
 
 export type GstMode = "none" | "cgst_sgst" | "igst";
@@ -102,6 +115,7 @@ export interface Project {
   description: string;
   requirements: string;
   rooms: string[];
+  roomSizes?: Record<string, RoomSize>;
   files: FileMeta[];
   items: ScopeItem[];
   quote: QuoteSettings;

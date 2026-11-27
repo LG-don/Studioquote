@@ -40,7 +40,7 @@ export default function RatesPage() {
   if (!ready) return <Loading />;
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
       <PageHeader
         title="Rate library"
         subtitle="Your cost rates (material + labour), before overheads and profit. Used by templates, AI drafting and the pricing table."

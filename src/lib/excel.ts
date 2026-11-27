@@ -213,3 +213,21 @@ export function exportRates(rates: Rate[]) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Rates");
   XLSX.writeFile(wb, "rate-library.xlsx");
 }
+
+/**
+ * Rows copied from Excel / Google Sheets arrive as tab-separated text.
+ * With a header row, columns are matched by heading; without one, the order
+ * Item · Qty · Unit · Material rate · Labour rate is assumed.
+ */
+export function parsePasted(text: string, defaultRoom: string): ScopeItem[] {
+  const rows: Row[] = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter((l) => l.trim())
+    .map((l) => l.split("\t").map((c) => (c.trim() === "" ? null : c.trim())));
+  if (!rows.length) return [];
+  const detected = detectColumns(rows);
+  if (detected) return rowsToItems(rows, detected, defaultRoom);
+  const fallback: Mapping = { headerRow: -1, cols: { item: 0, qty: 1, unit: 2, material: 3, labour: 4 } };
+  return rowsToItems(rows, fallback, defaultRoom);
+}

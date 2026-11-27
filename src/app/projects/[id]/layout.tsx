@@ -34,21 +34,20 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   const warnings = findings.filter((f) => f.severity === "warning").length;
   const base = `/projects/${id}`;
   const tabs = [
-    { href: base, label: "Brief", n: "1" },
-    { href: `${base}/scope`, label: "Scope", n: "2", count: project.items.length || undefined },
-    { href: `${base}/pricing`, label: "Pricing", n: "3" },
-    { href: `${base}/proposal`, label: "Check & proposal", n: "4", alert: blockers + warnings || undefined },
-    { href: `${base}/versions`, label: "Versions", count: project.versions.length || undefined },
+    { href: base, label: "Details", n: "1" },
+    { href: `${base}/quote`, label: "Quote", n: "2", count: project.items.length || undefined },
+    { href: `${base}/proposal`, label: "Check & send", n: "3", alert: blockers + warnings || undefined },
+    { href: `${base}/versions`, label: "History", count: project.versions.length || undefined },
   ];
 
   return (
     <ProjectProvider value={{ ...state, project }}>
       <div className="border-b border-line bg-white">
-        <div className="px-8 pt-5">
+        <div className="px-4 pt-5 md:px-8">
           <Link href="/projects" className="mb-2 inline-flex items-center gap-1 text-xs text-ink-3 hover:text-ink">
             <ChevronLeft size={13} /> Projects
           </Link>
-          <div className="flex items-start justify-between gap-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2.5">
                 <h1 className="truncate text-xl font-semibold tracking-tight">{project.name || "Untitled project"}</h1>
@@ -84,7 +83,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
               </div>
             </div>
           </div>
-          <nav className="mt-4 flex gap-1">
+          <nav className="mt-4 flex gap-1 overflow-x-auto">
             {tabs.map((t) => {
               const active = t.href === base ? pathname === base : pathname.startsWith(t.href);
               return (
@@ -108,7 +107,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
           </nav>
         </div>
       </div>
-      <div className="px-8 py-6">{children}</div>
+      <div className="px-4 py-6 md:px-8">{children}</div>
     </ProjectProvider>
   );
 }

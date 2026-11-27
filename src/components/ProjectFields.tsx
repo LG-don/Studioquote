@@ -25,7 +25,7 @@ export function ProjectFields<T extends P>({
     <div className="space-y-8">
       <section>
         <h3 className="mb-3 text-sm font-semibold">Project</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Project name">
             <Input value={value.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="e.g. Mehta Residence" />
           </Field>
@@ -49,7 +49,7 @@ export function ProjectFields<T extends P>({
               ))}
             </Select>
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Project type">
               <Select value={value.projectType} onChange={(e) => onChange({ projectType: e.target.value as P["projectType"] })}>
                 <option value="residential">Residential</option>
@@ -78,7 +78,7 @@ export function ProjectFields<T extends P>({
 
       <section>
         <h3 className="mb-3 text-sm font-semibold">Client</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Client name">
             <Input value={value.clientName} onChange={(e) => onChange({ clientName: e.target.value })} />
           </Field>
@@ -96,7 +96,7 @@ export function ProjectFields<T extends P>({
           <Field label="Email">
             <Input value={value.clientEmail} onChange={(e) => onChange({ clientEmail: e.target.value })} />
           </Field>
-          <Field label="Site address" className="col-span-2">
+          <Field label="Site address" className="sm:col-span-2">
             <Input value={value.clientAddress} onChange={(e) => onChange({ clientAddress: e.target.value })} />
           </Field>
         </div>

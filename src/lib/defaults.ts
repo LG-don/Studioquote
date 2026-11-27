@@ -163,7 +163,7 @@ export function sampleProject(s: Settings): Project {
     const qty = SAMPLE_QTY[`${it.room}|${it.rateId}`];
     const brand = it.rateId ? SAMPLE_BRANDS[it.rateId] : undefined;
     const resolved = brand ? it.missing.filter((m) => !/brand|series|shades|design|colour/i.test(m)) : it.missing;
-    return { ...it, qty: qty ?? null, brand: brand ?? "", missing: resolved, source: "sample" as const };
+    return { ...it, qty: qty ?? null, qtyAuto: false, brand: brand ?? "", missing: resolved, source: "sample" as const };
   });
   return newProject(s, {
     name: "Mehta Residence",

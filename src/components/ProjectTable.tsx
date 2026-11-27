@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 import { calcQuote } from "@/lib/calc";
 import { relativeTime, rupeesShort } from "@/lib/format";
 import type { Project, ProjectStatus } from "@/lib/types";
@@ -10,10 +10,10 @@ import { Badge, cx } from "./ui";
 export const STATUS_LABEL: Record<ProjectStatus, string> = { draft: "Draft", sent: "Sent", approved: "Approved" };
 export const STATUS_TONE: Record<ProjectStatus, "neutral" | "blue" | "green"> = { draft: "neutral", sent: "blue", approved: "green" };
 
-export function ProjectTable({ projects, onDelete }: { projects: Project[]; onDelete?: (p: Project) => void }) {
+export function ProjectTable({ projects, onDelete, onDuplicate }: { projects: Project[]; onDelete?: (p: Project) => void; onDuplicate?: (p: Project) => void }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-white">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-lg border border-line bg-white">
+      <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-line text-left text-xs text-ink-3">
             <th className="px-4 py-2.5 font-medium">Project</th>
@@ -22,7 +22,7 @@ export function ProjectTable({ projects, onDelete }: { projects: Project[]; onDe
             <th className="px-4 py-2.5 text-right font-medium">Quote total</th>
             <th className="px-4 py-2.5 text-right font-medium">Your profit</th>
             <th className="px-4 py-2.5 text-right font-medium">Updated</th>
-            {onDelete && <th className="w-10" />}
+            {(onDelete || onDuplicate) && <th className="w-16" />}
           </tr>
         </thead>
         <tbody>
@@ -48,15 +48,24 @@ export function ProjectTable({ projects, onDelete }: { projects: Project[]; onDe
                   {c.taxable ? `${rupeesShort(c.profit)} · ${c.marginPct.toFixed(0)}%` : "—"}
                 </td>
                 <td className="px-4 py-3 text-right text-xs text-ink-3">{relativeTime(p.updatedAt)}</td>
-                {onDelete && (
-                  <td className="pr-3 text-right">
-                    <button
+                {(onDelete || onDuplicate) && (
+                  <td className="whitespace-nowrap pr-3 text-right">
+                    {onDuplicate && (
+                      <button
+                        onClick={() => onDuplicate(p)}
+                        className="rounded p-1 text-ink-3 opacity-0 hover:bg-hover hover:text-ink group-hover:opacity-100"
+                        title="Copy as a new project"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    )}
+                    {onDelete && <button
                       onClick={() => onDelete(p)}
                       className="rounded p-1 text-ink-3 opacity-0 hover:bg-red-50 hover:text-red-700 group-hover:opacity-100"
                       title="Delete project"
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </button>}
                   </td>
                 )}
               </tr>
