@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { Check, ChevronLeft, CloudOff, Loader2 } from "lucide-react";
-import { calcQuote } from "@/lib/calc";
+import { calcProject } from "@/lib/calc";
+import { ENGAGEMENT_LABEL } from "@/lib/constants";
 import { ProjectProvider, useData, useProjectState } from "@/lib/data";
 import { rupees } from "@/lib/format";
 import { runScopeGuard } from "@/lib/scopeguard";
@@ -19,7 +20,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   const state = useProjectState(id);
   const { project, loading, saveState, update } = state;
 
-  const calc = useMemo(() => (project ? calcQuote(project.items, project.quote) : null), [project]);
+  const calc = useMemo(() => (project ? calcProject(project) : null), [project]);
   const findings = useMemo(() => (project && calc ? runScopeGuard(project, calc, rates) : []), [project, calc, rates]);
 
   if (loading) return <Loading />;
@@ -65,7 +66,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                 <SaveIndicator state={saveState} />
               </div>
               <div className="mt-0.5 text-sm text-ink-3">
-                {[project.clientName, project.propertyType, project.location, project.quoteNumber].filter(Boolean).join(" · ")}
+                {[ENGAGEMENT_LABEL[project.engagement ?? "turnkey"], project.clientName, project.propertyType, project.location, project.quoteNumber].filter(Boolean).join(" · ")}
                 {project.isSample && <span className="ml-2 rounded bg-amber-50 px-1.5 py-px text-xs text-amber-800">Sample data</span>}
               </div>
             </div>

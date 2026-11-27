@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { History, RotateCcw, Save } from "lucide-react";
-import { calcQuote } from "@/lib/calc";
+import { calcProject } from "@/lib/calc";
 import { useProject } from "@/lib/data";
 import { formatDate, rupees } from "@/lib/format";
 import { diffSnapshots, makeVersion, sameAsLatest, snapshotOf } from "@/lib/versions";
@@ -13,7 +13,7 @@ export default function VersionsPage() {
   const { project, update } = useProject();
   const [note, setNote] = useState("");
   const [selected, setSelected] = useState<string | null>(project.versions[project.versions.length - 1]?.id ?? null);
-  const current = useMemo(() => calcQuote(project.items, project.quote), [project.items, project.quote]);
+  const current = useMemo(() => calcProject(project), [project]);
   const unchanged = sameAsLatest(project);
 
   const save = () => {

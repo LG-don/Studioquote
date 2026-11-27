@@ -165,7 +165,7 @@ export function exportProjectWorkbook(p: Project, calc: QuoteCalc) {
     [p.name], [`Client: ${p.clientName}`], [`Quotation: ${p.quoteNumber}`], [],
     ["Sr.", "Room", "Category", "Item", "Specification", "Brand / finish", "Qty", "Unit", "Rate (₹)", "Amount (₹)"],
   ];
-  p.items.forEach((it, i) => {
+  p.items.filter((it) => !calc.lines[it.id].excluded).forEach((it, i) => {
     const l = calc.lines[it.id];
     client.push([i + 1, it.room, it.category, it.item, it.specification, it.brand, it.qty ?? "", it.unit, l.clientRate, l.clientAmount]);
   });

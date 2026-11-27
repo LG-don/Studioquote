@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertOctagon, AlertTriangle, CheckCircle2, Download, Info, MessageCircle, RefreshCw, Sparkles } from "lucide-react";
-import { calcQuote } from "@/lib/calc";
+import { calcProject } from "@/lib/calc";
 import { useData, useProject } from "@/lib/data";
 import { downloadBlob, renderProposalPdf } from "@/lib/pdfExport";
 import { rupees } from "@/lib/format";
@@ -24,7 +24,7 @@ const TAB_PATH: Record<Finding["target"], string> = { brief: "", quote: "/quote"
 export default function ProposalPage() {
   const { project, update, flush } = useProject();
   const { rates, settings, ai } = useData();
-  const calc = useMemo(() => calcQuote(project.items, project.quote), [project.items, project.quote]);
+  const calc = useMemo(() => calcProject(project), [project]);
   const ruleFindings = useMemo(() => runScopeGuard(project, calc, rates), [project, calc, rates]);
   const [aiFindings, setAiFindings] = useState<Finding[]>([]);
   const [aiBusy, setAiBusy] = useState(false);

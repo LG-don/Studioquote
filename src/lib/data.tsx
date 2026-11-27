@@ -2,6 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { FEE_CATEGORY } from "./constants";
+import { SAMPLE_RATES } from "./sampleRates";
 import { CloudStore, DemoStore, type Store } from "./store";
 import { getSupabase, isCloudConfigured } from "./supabase";
 import type { Project, Rate, Settings } from "./types";
@@ -63,8 +65,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const [s, r] = await Promise.all([store.getSettings(), store.getRates()]);
+        const [s, loaded] = await Promise.all([store.getSettings(), store.getRates()]);
         if (cancelled) return;
+        // Libraries created before design-fee lines existed get the sample fee rates once.
+        let r = loaded;
+        if (!loaded.some((x) => x.category === FEE_CATEGORY)) {
+          r = [...SAMPLE_RATES.filter((x) => x.category === FEE_CATEGORY), ...loaded];
+          store.saveRates(r).catch(() => {});
+        }
         setSettings(s);
         setRates(r);
       } finally {

@@ -2,7 +2,8 @@
 // Runs without AI. An optional AI review can add further notes on top.
 
 import type { QuoteCalc } from "./calc";
-import { BRAND_SENSITIVE } from "./constants";
+import { delegatedCategories } from "./calc";
+import { BRAND_SENSITIVE, FEE_CATEGORY } from "./constants";
 import type { Project, Rate } from "./types";
 
 export type Severity = "blocker" | "warning" | "info";
@@ -50,27 +51,32 @@ export function runScopeGuard(p: Project, calc: QuoteCalc, rates: Rate[]): Findi
     add({ id: "margin", severity: "warning", title: `Low profit margin (${calc.marginPct.toFixed(1)}%)`, detail: "Your profit after overheads and discount is thin. Review discount or profit %.", target: "quote" });
   }
 
-  // ---- Coverage checks (by category presence)
-  const cats = new Set(p.items.map((i) => i.category));
+  // ---- Coverage checks (by category presence). Not relevant to design-only work,
+  // and work done by the client's own vendors isn't the studio's to price.
+  const engagement = p.engagement ?? "turnkey";
+  const delegated = delegatedCategories(p);
+  const priced = p.items.filter((i) => !delegated.has(i.category));
+  const execution = engagement !== "design_only" && priced.some((i) => i.category !== FEE_CATEGORY);
+  const cats = new Set(priced.map((i) => i.category));
   const hasTransport = /transport/.test(allText);
-  if (!hasTransport) add({ id: "transport", severity: "warning", title: "Transportation charges missing", detail: "Add a transportation line or state in terms that transport is included / excluded.", target: "quote" });
+  if (execution && !hasTransport) add({ id: "transport", severity: "warning", title: "Transportation charges missing", detail: "Add a transportation line or state in terms that transport is included / excluded.", target: "quote" });
 
-  if (cats.has("Civil and demolition")) {
+  if (execution && cats.has("Civil and demolition")) {
     const civil = p.items.filter((i) => i.category === "Civil and demolition");
     if (civil.every((i) => !has(i.excluded))) add({ id: "civil-excl", severity: "warning", title: "Civil work exclusions not defined", detail: "State what civil work is not included (structural repairs, debris disposal, etc.).", target: "quote" });
   }
-  if (cats.has("Electrical") && !/fixture|light/.test(p.items.filter((i) => i.category === "Electrical").map((i) => i.excluded + i.included).join(" ").toLowerCase()) && !cats.has("Lighting")) {
+  if (execution && cats.has("Electrical") && !/fixture|light/.test(p.items.filter((i) => i.category === "Electrical").map((i) => i.excluded + i.included).join(" ").toLowerCase()) && !cats.has("Lighting")) {
     add({ id: "fixtures", severity: "warning", title: "Light fixtures — supply responsibility unclear", detail: "Electrical work is quoted but light fixtures are neither included nor excluded.", target: "quote" });
   }
-  if (cats.has("Modular kitchen") && !p.items.some((i) => /appliance|hob|chimney/.test((i.excluded + i.included + i.dependencies).toLowerCase()))) {
+  if (execution && cats.has("Modular kitchen") && !p.items.some((i) => /appliance|hob|chimney/.test((i.excluded + i.included + i.dependencies).toLowerCase()))) {
     add({ id: "appliances", severity: "warning", title: "Kitchen appliances not addressed", detail: "State whether hob, chimney and built-in appliances are supplied by client or studio.", target: "quote" });
   }
-  if (!p.items.some((i) => i.category === "Painting and polishing") && p.items.length > 0) {
+  if (execution && !cats.has("Painting and polishing") && !delegated.has("Painting and polishing")) {
     add({ id: "painting", severity: "info", title: "No painting in scope", detail: "If painting is excluded, mention it in general exclusions.", target: "quote" });
   }
 
   // ---- Item level
-  for (const it of p.items) {
+  for (const it of priced) {
     const line = calc.lines[it.id];
     const name = `${it.room} — ${it.item || "Untitled item"}`;
     if (!has(it.item)) add({ id: `name-${it.id}`, severity: "blocker", title: "Item without description", detail: `${it.room}: an item has no description.`, itemId: it.id, target: "quote" });
@@ -109,6 +115,15 @@ export function runScopeGuard(p: Project, calc: QuoteCalc, rates: Rate[]): Findi
   collapse("rate-", (n) => `${n} lines have no rate`, "Pick rates from your library or enter material / labour rates.");
   collapse("spec-", (n) => `${n} lines have no specification`, "Describe material and finish.");
   collapse("brand-", (n) => `${n} lines without a brand`, 'Name the brand or say "equivalent approved".');
+
+  if (engagement === "mixed") {
+    const unnamed = [...delegated].filter((c) => !p.delegated?.[c]?.vendor?.trim());
+    if (unnamed.length) add({ id: "vendors", severity: "info", title: "Vendors not named", detail: `Name who is doing: ${unnamed.join(", ")}. It appears in the proposal so responsibilities are clear.`, target: "brief" });
+    if (!p.items.some((i) => i.category === FEE_CATEGORY)) add({ id: "coord-fee", severity: "info", title: "No design or coordination fee", detail: "Add your design and vendor-coordination fees in the Design services section.", target: "quote" });
+  }
+  if (engagement === "design_only" && !p.items.some((i) => i.category === FEE_CATEGORY)) {
+    add({ id: "design-fee", severity: "blocker", title: "No design fee lines", detail: "Add your design fee in the Design services section of the Quote.", target: "quote" });
+  }
 
   const order: Record<Severity, number> = { blocker: 0, warning: 1, info: 2 };
   return f.sort((a, b) => order[a.severity] - order[b.severity]);

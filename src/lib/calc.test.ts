@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcQuote, milestoneAmounts, roundClientRate } from "./calc";
+import { calcProject, calcQuote, milestoneAmounts, roundClientRate } from "./calc";
 import { amountInWords, indianWords, rupees } from "./format";
 import type { QuoteSettings, ScopeItem } from "./types";
 
@@ -140,5 +140,28 @@ describe("helpers", () => {
     expect(indianWords(1245000)).toBe("Twelve Lakh Forty-Five Thousand");
     expect(indianWords(10150099)).toBe("One Crore One Lakh Fifty Thousand Ninety-Nine");
     expect(amountInWords(512)).toBe("Rupees Five Hundred Twelve Only");
+  });
+});
+
+describe("engagement types", () => {
+  it("prices design fees as entered, with no markup and no cost", () => {
+    const fee = item({ category: "Design services", qty: 1450, materialRate: 0, labourRate: 150 });
+    const r = calcQuote([fee], { ...base, showContingency: false, gstMode: "none" });
+    expect(r.lines[fee.id].clientRate).toBe(150);
+    expect(r.clientSubtotal).toBe(217500);
+    expect(r.costSubtotal).toBe(0);
+    expect(r.profit).toBe(217500);
+  });
+  it("leaves vendor-handled categories out of every total", () => {
+    const own = item({ category: "Flooring" });
+    const vendor = item({ category: "Modular kitchen", qty: null });
+    const mixed = calcProject({ items: [own, vendor], quote: base, engagement: "mixed", delegated: { "Modular kitchen": { vendor: "Acme Kitchens" } } });
+    const solo = calcQuote([own], base);
+    expect(mixed.grandTotal).toBe(solo.grandTotal);
+    expect(mixed.lines[vendor.id].excluded).toBe(true);
+    expect(mixed.incompleteCount).toBe(0);
+    // Delegations only count in a mixed engagement
+    const turnkey = calcProject({ items: [own, vendor], quote: base, engagement: "turnkey", delegated: { "Modular kitchen": { vendor: "" } } });
+    expect(turnkey.incompleteCount).toBe(1);
   });
 });

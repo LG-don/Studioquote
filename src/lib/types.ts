@@ -99,6 +99,14 @@ export interface Version {
 
 export type ProjectStatus = "draft" | "sent" | "approved";
 
+/** What the studio is being engaged for. */
+export type Engagement = "turnkey" | "design_only" | "mixed";
+
+/** In a mixed engagement: work categories executed by the client's own vendors. */
+export interface Delegation {
+  vendor: string; // who is doing it, optional free text
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -109,6 +117,11 @@ export interface Project {
   location: string;
   clientState: string;
   propertyType: string;
+  engagement?: Engagement; // missing on older projects = turnkey
+  delegated?: Record<string, Delegation>; // category → vendor (mixed engagement)
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  balconies?: number | null;
   carpetArea: number | null;
   projectType: "residential" | "commercial";
   budget: number | null;

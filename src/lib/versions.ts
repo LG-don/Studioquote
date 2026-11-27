@@ -1,4 +1,4 @@
-import { calcQuote } from "./calc";
+import { calcProject } from "./calc";
 import { uid } from "./ids";
 import type { Project, ScopeItem, Version, VersionSnapshot } from "./types";
 
@@ -12,7 +12,7 @@ export function sameAsLatest(p: Project): boolean {
 }
 
 export function makeVersion(p: Project, note: string): Version {
-  const c = calcQuote(p.items, p.quote);
+  const c = calcProject(p);
   return {
     id: uid("v"),
     number: (p.versions[p.versions.length - 1]?.number ?? 0) + 1,

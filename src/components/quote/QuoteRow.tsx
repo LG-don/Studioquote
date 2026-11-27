@@ -12,6 +12,7 @@ import { Badge, Button, cx, Field, Input, NumberInput, Select, Textarea } from "
 
 export interface QuoteRowProps {
   it: ScopeItem;
+  byVendor?: string | null; // executed by the client's vendor — not priced
   line: LineCalc;
   detailed: boolean;
   expanded: boolean;
@@ -38,7 +39,7 @@ export function QuoteRow(p: QuoteRowProps) {
   const changed = lib && (lib.materialRate !== it.materialRate || lib.labourRate !== it.labourRate);
   const missingQty = it.qty === null || it.qty <= 0;
   const missingRate = it.materialRate === null && it.labourRate === null;
-  const attention = needsAttention(it, line);
+  const attention = !p.byVendor && needsAttention(it, line);
   const colCount = detailed ? 9 : 7;
 
   const setCostRate = (v: number | null) => {
@@ -59,6 +60,7 @@ export function QuoteRow(p: QuoteRowProps) {
           "group border-b border-line align-top",
           expanded ? "bg-canvas" : "hover:bg-canvas/70",
           p.highlighted && "outline outline-2 -outline-offset-2 outline-accent",
+          p.byVendor && "text-ink-3",
         )}
       >
         <td className="py-1.5 pl-3 pr-2">
@@ -70,6 +72,8 @@ export function QuoteRow(p: QuoteRowProps) {
               <div className="flex flex-wrap items-center gap-1.5 leading-5">
                 {attention && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" title="Needs a quantity or rate" />}
                 <span className="font-medium">{it.item || <span className="text-ink-3">Untitled item</span>}</span>
+                {p.byVendor && <Badge tone="amber">{p.byVendor} · not in your price</Badge>}
+                {line.isFee && <Badge tone="accent">Fee</Badge>}
                 {it.source === "ai" && <Badge tone="blue">AI draft</Badge>}
                 {it.missing.length > 0 && <Badge tone="amber">{it.missing.length} to confirm</Badge>}
               </div>
@@ -86,7 +90,20 @@ export function QuoteRow(p: QuoteRowProps) {
         <td className="px-1 py-1.5">
           <input list="units" value={it.unit} onChange={(e) => p.onChange({ unit: e.target.value })} className="cell-input" aria-label="Unit" />
         </td>
-        {detailed ? (
+        {line.isFee ? (
+          <td colSpan={detailed ? 3 : 1} className="px-1 py-1.5">
+            <div className="flex items-center justify-end gap-1.5">
+              {detailed && <span className="text-[11px] text-ink-3">Your fee</span>}
+              <NumberInput
+                value={missingRate ? null : (it.materialRate ?? 0) + (it.labourRate ?? 0)}
+                onChange={(v) => p.onChange({ materialRate: v === null ? null : 0, labourRate: v })}
+                className={cx("cell-input num", detailed ? "w-[92px]" : "", missingRate && "empty")}
+                placeholder="—"
+                aria-label="Fee rate"
+              />
+            </div>
+          </td>
+        ) : detailed ? (
           <>
             <td className="px-1 py-1.5">
               <NumberInput value={it.materialRate} onChange={(v) => p.onChange({ materialRate: v })} className={cx("cell-input num", missingRate && "empty")} placeholder="—" aria-label="Material rate" />
@@ -107,8 +124,8 @@ export function QuoteRow(p: QuoteRowProps) {
             />
           </td>
         )}
-        <td className="tabular bg-accent-soft/20 px-2 py-2 text-right">{line.clientRate ? num(line.clientRate) : "—"}</td>
-        <td className="tabular bg-accent-soft/20 px-3 py-2 text-right font-medium">{line.clientAmount ? rupees(line.clientAmount) : "—"}</td>
+        <td className="tabular bg-accent-soft/20 px-2 py-2 text-right">{line.clientRate && !line.excluded ? num(line.clientRate) : "—"}</td>
+        <td className="tabular bg-accent-soft/20 px-3 py-2 text-right font-medium">{line.clientAmount && !line.excluded ? rupees(line.clientAmount) : "—"}</td>
         <td className="relative px-1 py-1.5 text-right">
           <div className="flex justify-end gap-0.5">
             <button

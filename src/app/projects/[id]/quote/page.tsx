@@ -3,14 +3,14 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Download, ListChecks, Plus, Search, SlidersHorizontal, Sparkles, Upload, Wand2, X } from "lucide-react";
-import { calcQuote } from "@/lib/calc";
 import { UNITS } from "@/lib/constants";
 import { useData, useProject } from "@/lib/data";
 import { exportProjectWorkbook } from "@/lib/excel";
 import { rupees } from "@/lib/format";
 import { uid } from "@/lib/ids";
 import { applyRoomSizes, setRoomSize } from "@/lib/measure";
-import { GENERAL_ROOM, generateFromTemplates, itemFromRate } from "@/lib/templates";
+import { DESIGN_ROOM, designServiceItems, GENERAL_ROOM, generateFromTemplates, itemFromRate } from "@/lib/templates";
+import { calcProject, delegatedCategories } from "@/lib/calc";
 import type { Rate, RoomSize, ScopeItem } from "@/lib/types";
 import { RatePicker } from "@/components/RatePicker";
 import { DraftModal } from "@/components/quote/DraftModal";
@@ -33,7 +33,7 @@ function QuotePage() {
   const { project, update } = useProject();
   const { rates } = useData();
   const search = useSearchParams();
-  const calc = useMemo(() => calcQuote(project.items, project.quote), [project.items, project.quote]);
+  const calc = useMemo(() => calcProject(project), [project]);
 
   const [groupBy, setGroupBy] = useState<"room" | "category">("room");
   const [detailed, setDetailed] = useState(true);
@@ -64,7 +64,13 @@ function QuotePage() {
     });
   };
 
-  const rooms = useMemo(() => [...new Set([...project.rooms, ...project.items.map((i) => i.room)])], [project.rooms, project.items]);
+  const engagement = project.engagement ?? "turnkey";
+  const delegated = delegatedCategories(project);
+  // Design fees sit in their own section at the top. In a design-only job that is the whole quote.
+  const rooms = useMemo(() => {
+    const physical = [...new Set([...project.rooms, ...project.items.map((i) => i.room)])].filter((r) => r !== DESIGN_ROOM);
+    return engagement === "design_only" ? [DESIGN_ROOM, ...physical.filter((r) => project.items.some((i) => i.room === r))] : [DESIGN_ROOM, ...physical];
+  }, [project.rooms, project.items, engagement]);
   const attentionItems = project.items.filter((it) => needsAttention(it, calc.lines[it.id]));
 
   const focusItem = (id: string, expand = false) => {
@@ -126,7 +132,12 @@ function QuotePage() {
 
   // Opt-in: typical lines for one room, with library rates and standard scope wording.
   const suggestFor = (room: string) => {
-    const items = room === GENERAL_ROOM ? generateFromTemplates([], rates, true) : generateFromTemplates([room], rates, false);
+    const items =
+      room === DESIGN_ROOM
+        ? designServiceItems(rates, { carpetArea: project.carpetArea, coordination: engagement !== "turnkey" })
+        : room === GENERAL_ROOM
+          ? generateFromTemplates([], rates, true, delegated)
+          : generateFromTemplates([room], rates, false, delegated);
     addItems(room, items);
   };
 
@@ -276,7 +287,7 @@ function QuotePage() {
               </tr>
             </thead>
             {groups.map((g) => {
-              const sub = g.items.reduce((s, i) => s + calc.lines[i.id].clientAmount, 0);
+              const sub = g.items.reduce((s, i) => s + (calc.lines[i.id].excluded ? 0 : calc.lines[i.id].clientAmount), 0);
               return (
                 <tbody key={g.key}>
                   <tr className="border-b border-line bg-canvas">
@@ -285,7 +296,10 @@ function QuotePage() {
                         <span className="text-xs font-semibold uppercase tracking-wide text-ink-2">
                           {g.key} <span className="ml-1 font-normal normal-case tracking-normal text-ink-3">{g.items.length} lines</span>
                         </span>
-                        {groupBy === "room" && (
+                        {groupBy === "room" && g.key === DESIGN_ROOM && (
+                          <span className="text-xs text-ink-3">Your fees — entered as charged, no markup</span>
+                        )}
+                        {groupBy === "room" && g.key !== DESIGN_ROOM && (
                           <RoomSizeInput
                             size={project.roomSizes?.[g.key]}
                             onChange={(size) => update((p) => setRoomSize(p, g.key, size))}
@@ -322,8 +336,10 @@ function QuotePage() {
                         No lines yet.{" "}
                         <button onClick={() => setPickerRoom(g.key)} className="text-ink underline-offset-2 hover:underline">Add a line</button>
                         {" or "}
-                        <button onClick={() => suggestFor(g.key)} className="text-ink underline-offset-2 hover:underline">suggest typical lines</button>
-                        {" for this room."}
+                        <button onClick={() => suggestFor(g.key)} className="text-ink underline-offset-2 hover:underline">
+                          {g.key === DESIGN_ROOM ? "add your standard design fees" : "suggest typical lines"}
+                        </button>
+                        {g.key === DESIGN_ROOM ? (engagement === "turnkey" ? " (optional — skip if fees are built into your rates)." : ".") : " for this room."}
                       </td>
                     </tr>
                   )}
@@ -331,6 +347,7 @@ function QuotePage() {
                     <QuoteRow
                       key={it.id}
                       it={it}
+                      byVendor={delegated.has(it.category) ? project.delegated?.[it.category]?.vendor || "Client's vendor" : null}
                       line={calc.lines[it.id]}
                       detailed={detailed}
                       expanded={!!expanded[it.id]}

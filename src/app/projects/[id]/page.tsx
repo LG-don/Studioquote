@@ -7,7 +7,7 @@ import { sheetText } from "@/lib/excel";
 import { formatDate } from "@/lib/format";
 import { uid } from "@/lib/ids";
 import type { FileKind, FileMeta } from "@/lib/types";
-import { ProjectFields } from "@/components/ProjectFields";
+import { EngagementPicker, ProjectFields } from "@/components/ProjectFields";
 import { Badge, Button, Card, LinkButton, SectionTitle } from "@/components/ui";
 
 const KIND_LABEL: Record<FileKind, string> = {
@@ -81,6 +81,16 @@ export default function BriefPage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_340px]">
       <div>
+        <section className="mb-9">
+          <h3 className="text-sm font-semibold">What you&apos;re quoting for</h3>
+          <div className="mt-3">
+            <EngagementPicker
+              engagement={project.engagement ?? "turnkey"}
+              delegated={project.delegated ?? {}}
+              onChange={(patch) => update((p) => ({ ...p, ...patch }))}
+            />
+          </div>
+        </section>
         <ProjectFields value={project} onChange={(patch) => update((p) => ({ ...p, ...patch }))} />
         <div className="mt-8 flex justify-end border-t border-line pt-5">
           <LinkButton href={`/projects/${project.id}/quote`} variant="primary">

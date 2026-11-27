@@ -6,7 +6,8 @@ import { useData, useProject } from "@/lib/data";
 import { uid } from "@/lib/ids";
 import { RATE_BASIS } from "@/lib/measure";
 import { authHeaders } from "@/lib/supabase";
-import { GENERAL_ROOM, generateFromTemplates } from "@/lib/templates";
+import { delegatedCategories } from "@/lib/calc";
+import { DESIGN_ROOM, designServiceItems, GENERAL_ROOM, generateFromTemplates } from "@/lib/templates";
 import type { ScopeItem } from "@/lib/types";
 import { Button, cx, Modal } from "@/components/ui";
 
@@ -40,7 +41,9 @@ export function DraftModal({
   if (open !== lastOpen) {
     setLastOpen(open);
     if (open) {
-      setSelected(emptyRooms.length ? emptyRooms : rooms);
+      const base = emptyRooms.length ? emptyRooms : rooms;
+      // Design fees are opt-in for turnkey jobs (many studios build them into their rates).
+      setSelected((project.engagement ?? "turnkey") === "turnkey" ? base.filter((r) => r !== DESIGN_ROOM) : base);
       setError(null);
     }
   }
@@ -50,7 +53,12 @@ export function DraftModal({
     setError(null);
     try {
       if (mode === "template") {
-        const items = generateFromTemplates(selected.filter((r) => r !== GENERAL_ROOM), rates, selected.includes(GENERAL_ROOM));
+        const physical = selected.filter((r) => r !== GENERAL_ROOM && r !== DESIGN_ROOM);
+        const engagement = project.engagement ?? "turnkey";
+        const items = [
+          ...(selected.includes(DESIGN_ROOM) ? designServiceItems(rates, { carpetArea: project.carpetArea, coordination: engagement !== "turnkey" }) : []),
+          ...(engagement === "design_only" ? [] : generateFromTemplates(physical, rates, selected.includes(GENERAL_ROOM), delegatedCategories(project))),
+        ];
         onDone(items, replace ? selected : [], []);
       } else {
         const res = await fetch("/api/ai/scope", {

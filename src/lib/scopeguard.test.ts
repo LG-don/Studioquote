@@ -93,3 +93,18 @@ describe("room measurements", () => {
     expect(manual[0].qty).toBe(99);
   });
 });
+
+describe("ScopeGuard and engagement", () => {
+  it("design-only quotes need a design fee and skip execution checks", () => {
+    const p = newProject(settings, { clientName: "X", engagement: "design_only", items: [] });
+    const titles = runScopeGuard(p, calcQuote(p.items, p.quote), SAMPLE_RATES).map((f) => f.title);
+    expect(titles).toContain("No design fee lines");
+    expect(titles).not.toContain("Transportation charges missing");
+  });
+  it("ignores missing quantities on vendor-handled lines", () => {
+    const items = generateFromTemplates(["Kitchen"], SAMPLE_RATES, false).filter((i) => i.category === "Modular kitchen");
+    const p = newProject(settings, { clientName: "X", engagement: "mixed", delegated: { "Modular kitchen": { vendor: "Acme" } }, items });
+    const f = runScopeGuard(p, calcQuote(p.items, p.quote, new Set(["Modular kitchen"])), SAMPLE_RATES);
+    expect(f.some((x) => /quantity/i.test(x.title))).toBe(false);
+  });
+});

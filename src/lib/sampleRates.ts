@@ -7,6 +7,11 @@ import type { Rate } from "./types";
 type R = [id: string, category: string, name: string, spec: string, unit: string, material: number, labour: number];
 
 const rows: R[] = [
+  // Design services — the studio's own fees (entered as the fee; never marked up)
+  ["r-ds-full", "Design services", "Interior design fee", "Concept, layouts, 3D views, working drawings and material selection", "sq.ft", 0, 150],
+  ["r-ds-3d", "Design services", "Additional 3D view", "Rendered 3D view beyond those included in the design fee", "nos", 0, 2500],
+  ["r-ds-visit", "Design services", "Site visit", "Site visit for measurement, review or snagging", "nos", 0, 2000],
+  ["r-ds-coord", "Design services", "Vendor coordination & supervision", "Coordinating and checking work done by the client's own vendors", "lot", 0, 40000],
   // Site & general
   ["r-site-protect", "Site & general", "Site protection & masking", "Floor protection sheets, masking of windows, doors and fittings", "lot", 8000, 6000],
   ["r-site-transport", "Site & general", "Transportation & material handling", "Transport of materials to site and lifting to floor", "lot", 0, 18000],

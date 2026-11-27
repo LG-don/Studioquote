@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Copy, Trash2 } from "lucide-react";
-import { calcQuote } from "@/lib/calc";
+import { calcProject } from "@/lib/calc";
 import { relativeTime, rupeesShort } from "@/lib/format";
 import type { Project, ProjectStatus } from "@/lib/types";
 import { Badge, cx } from "./ui";
@@ -27,7 +27,7 @@ export function ProjectTable({ projects, onDelete, onDuplicate }: { projects: Pr
         </thead>
         <tbody>
           {projects.map((p) => {
-            const c = calcQuote(p.items, p.quote);
+            const c = calcProject(p);
             return (
               <tr key={p.id} className="group border-b border-line last:border-0 hover:bg-hover/60">
                 <td className="px-4 py-3">

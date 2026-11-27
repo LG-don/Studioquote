@@ -4,9 +4,19 @@
 
 StudioQuote takes a project through three steps:
 
-1. **Details** — client, property, rooms, requirements, and files (drawings, old BOQs, rate lists, reference images).
+1. **Details** — first, what the studio is engaged for: **turnkey**, **design only**, or **design + part execution** (tick which work your studio does; the rest is marked as the client's vendor, with the vendor's name). Then property (apartment, villa, office… with bedroom / bathroom / balcony counts), the rooms you pick, client, brief and files.
 2. **Quote** — one room-by-room table. Every line carries its price *and* its scope (click a line to see what is included, not included, installation, assumptions and what the client provides). New projects start as a clean slate: add lines from your rate library, paste from Excel, or ask for typical lines room by room (templates, or AI from the brief if connected). Enter a room's size once and floor, ceiling, wall and skirting quantities fill in from your measurements. Rates come from your own library; overheads, profit, contingency, discount and GST use fixed formulas, and a bar at the bottom always shows what the client pays and what you earn.
 3. **Check & send** — ScopeGuard lists gaps and ambiguities before the client sees them, then download the PDF or send it on WhatsApp. Every export is saved as a version (R1, R2…) under **History** so revisions can be compared.
+
+## Engagement types
+
+| | Quote contains | Proposal |
+|---|---|---|
+| Turnkey | All work, with optional design-fee lines | Scope of work + BOQ |
+| Design only | Design-fee lines (design fee, extra 3D views, site visits) | Scope of services + fee schedule |
+| Design + part execution | Your work + design and vendor-coordination fees. Work in categories handled by the client's vendors stays visible for coordination but is never priced | Adds a "By the client's vendors" section naming each vendor |
+
+Design-fee lines (category *Design services*) are your fee: priced as entered, never marked up.
 
 ## What's new (UX update, Nov 2026)
 

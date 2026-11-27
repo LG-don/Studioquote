@@ -26,6 +26,10 @@ const T = (
 ): ScopeText => ({ included, excluded, installation, assumptions, dependencies, missing });
 
 export const SCOPE_TEXT: Record<string, ScopeText> = {
+  "r-ds-full": T("Site measurement, concept and mood board, furniture layout, 3D views of key spaces, working drawings (carpentry, electrical, false ceiling, flooring), material and finish selection", "Execution of work; structural, MEP or society approvals; product purchases", "Delivered as PDF drawings and presentations", "Up to two rounds of revisions per stage", "Timely feedback and approvals from the client", ["Number of included 3D views to be confirmed"]),
+  "r-ds-3d": T("One additional rendered 3D view", "Changes after the view is approved", "Shared as a high-resolution image"),
+  "r-ds-visit": T("Visit to site by the designer", "Travel outside city limits unless listed", "Scheduled in advance with the client"),
+  "r-ds-coord": T("Coordinating the client's vendors to the approved drawings, periodic site checks, snag list at handover", "Vendor payments, vendor warranties and the quality of vendor-supplied materials", "Through the execution period", "", "Client shares vendor contacts and schedules", ["Visit frequency to be confirmed"]),
   "r-site-protect": T("Protection of existing flooring, windows, doors and fittings for the duration of work", "Repair of pre-existing damage", "Laid before work begins and removed at handover"),
   "r-site-transport": T("Transport of all studio-supplied materials to site and lifting to floor", "Transport of client-purchased items", "Using society-approved lift / staircase timings", "Service lift available for material movement", "Society permission for material movement"),
   "r-site-clean": T("One round of deep cleaning of all work areas before handover", "Cleaning of areas outside the scope; post-handover cleaning", "Professional cleaning team on completion"),
@@ -107,6 +111,19 @@ const ROOM_TEMPLATES: { match: RegExp; rates: string[] }[] = [
 const GENERAL_RATES = ["r-site-protect", "r-site-debris", "r-site-transport", "r-el-db", "r-civ-plaster", "r-site-clean"];
 
 export const GENERAL_ROOM = "General / site";
+export const DESIGN_ROOM = "Design services";
+
+/** Fee lines for the studio's design work. Design fee quantity = carpet area, when known. */
+export function designServiceItems(rates: Rate[], opts: { carpetArea: number | null; coordination: boolean }): ScopeItem[] {
+  const byId = new Map(rates.map((r) => [r.id, r]));
+  const ids = ["r-ds-full", "r-ds-3d", "r-ds-visit", ...(opts.coordination ? ["r-ds-coord"] : [])];
+  return ids.map((id) => {
+    const it = itemFromRate(byId.get(id), id, DESIGN_ROOM, "template");
+    if (id === "r-ds-full" && opts.carpetArea) it.qty = opts.carpetArea;
+    if (id === "r-ds-coord") it.qty = 1;
+    return it;
+  });
+}
 
 export function templateRatesForRoom(room: string): string[] {
   const t = ROOM_TEMPLATES.find((t) => t.match.test(room));
@@ -141,7 +158,7 @@ export function itemFromRate(rate: Rate | undefined, rateId: string, room: strin
 }
 
 /** Builds a draft scope for the given rooms using the studio's rate library. */
-export function generateFromTemplates(rooms: string[], rates: Rate[], includeGeneral = true): ScopeItem[] {
+export function generateFromTemplates(rooms: string[], rates: Rate[], includeGeneral = true, skipCategories: Set<string> = new Set()): ScopeItem[] {
   const byId = new Map(rates.map((r) => [r.id, r]));
   const items: ScopeItem[] = [];
   for (const room of rooms) {
@@ -152,5 +169,6 @@ export function generateFromTemplates(rooms: string[], rates: Rate[], includeGen
   if (includeGeneral) {
     for (const rid of GENERAL_RATES) items.push(itemFromRate(byId.get(rid), rid, GENERAL_ROOM, "template"));
   }
-  return items;
+  // In a mixed engagement, don't suggest work the client's vendors are doing.
+  return items.filter((i) => !skipCategories.has(i.category));
 }

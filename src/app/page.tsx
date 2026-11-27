@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
-import { calcQuote } from "@/lib/calc";
+import { calcProject } from "@/lib/calc";
 import { useData } from "@/lib/data";
 import { DEFAULT_SETTINGS, sampleProject } from "@/lib/defaults";
 import { rupeesShort } from "@/lib/format";
@@ -22,7 +22,7 @@ export default function Dashboard() {
 
   if (!projects || !settings) return <Loading />;
 
-  const totals = projects.map((p) => ({ p, c: calcQuote(p.items, p.quote) }));
+  const totals = projects.map((p) => ({ p, c: calcProject(p) }));
   const open = totals.filter((t) => t.p.status !== "approved");
   const approved = totals.filter((t) => t.p.status === "approved");
   const pipeline = open.reduce((s, t) => s + t.c.grandTotal, 0);

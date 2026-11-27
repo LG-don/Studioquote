@@ -14,8 +14,13 @@
 //   9. Grand total      = taxable + GST, rounded to the rupee (round-off shown)
 //
 // Clients only ever see client rates. Overhead and profit are internal.
+//
+// Design-fee lines (category "Design services") are the studio's own fee: priced as
+// entered, never marked up, not counted as cost. Lines in categories executed by the
+// client's own vendors (mixed engagement) stay for coordination but are left out of totals.
 
-import type { Milestone, QuoteSettings, ScopeItem } from "./types";
+import { FEE_CATEGORY } from "./constants";
+import type { Milestone, Project, QuoteSettings, ScopeItem } from "./types";
 
 export interface LineCalc {
   id: string;
@@ -27,6 +32,8 @@ export interface LineCalc {
   clientRate: number;
   clientAmount: number;
   complete: boolean; // has qty and at least one rate
+  isFee: boolean; // design fee — priced as entered
+  excluded: boolean; // executed by the client's vendor — not in totals
 }
 
 export interface GroupTotal {
@@ -80,23 +87,36 @@ export function loadFactor(q: QuoteSettings): number {
   return oh * pr * ct;
 }
 
-export function calcLine(item: ScopeItem, factor: number): LineCalc {
+export function calcLine(item: ScopeItem, factor: number, excluded = false): LineCalc {
   const qty = item.qty ?? 0;
   const m = item.materialRate ?? 0;
   const l = item.labourRate ?? 0;
   const costRate = m + l;
-  const clientRate = roundClientRate(costRate * factor);
+  const isFee = item.category === FEE_CATEGORY;
+  const clientRate = isFee ? roundClientRate(costRate) : roundClientRate(costRate * factor);
   return {
     id: item.id,
     qty,
     costRate,
-    materialAmount: round2(qty * m),
-    labourAmount: round2(qty * l),
-    costAmount: round2(qty * costRate),
+    materialAmount: isFee ? 0 : round2(qty * m),
+    labourAmount: isFee ? 0 : round2(qty * l),
+    costAmount: isFee ? 0 : round2(qty * costRate),
     clientRate,
     clientAmount: Math.round(qty * clientRate),
-    complete: item.qty !== null && item.qty > 0 && (item.materialRate !== null || item.labourRate !== null) && costRate > 0,
+    complete: excluded || (item.qty !== null && item.qty > 0 && (item.materialRate !== null || item.labourRate !== null) && costRate > 0),
+    isFee,
+    excluded,
   };
+}
+
+/** Categories handed to the client's own vendors (mixed engagement only). */
+export function delegatedCategories(p: { engagement?: Project["engagement"]; delegated?: Project["delegated"] }): Set<string> {
+  return new Set(p.engagement === "mixed" ? Object.keys(p.delegated ?? {}) : []);
+}
+
+/** Quote maths for a whole project, honouring its engagement type. */
+export function calcProject(p: { items: ScopeItem[]; quote: QuoteSettings; engagement?: Project["engagement"]; delegated?: Project["delegated"] }): QuoteCalc {
+  return calcQuote(p.items, p.quote, delegatedCategories(p));
 }
 
 function group(items: ScopeItem[], lines: Record<string, LineCalc>, key: (i: ScopeItem) => string): GroupTotal[] {
@@ -112,7 +132,7 @@ function group(items: ScopeItem[], lines: Record<string, LineCalc>, key: (i: Sco
   return [...map.values()];
 }
 
-export function calcQuote(items: ScopeItem[], q: QuoteSettings): QuoteCalc {
+export function calcQuote(allItems: ScopeItem[], q: QuoteSettings, delegated: Set<string> = new Set()): QuoteCalc {
   const factor = loadFactor(q);
   const lines: Record<string, LineCalc> = {};
   let materialTotal = 0;
@@ -120,6 +140,10 @@ export function calcQuote(items: ScopeItem[], q: QuoteSettings): QuoteCalc {
   let clientSubtotal = 0;
   let incompleteCount = 0;
 
+  for (const it of allItems) {
+    if (delegated.has(it.category)) lines[it.id] = calcLine(it, factor, true);
+  }
+  const items = allItems.filter((it) => !delegated.has(it.category));
   for (const it of items) {
     const l = calcLine(it, factor);
     lines[it.id] = l;

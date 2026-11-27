@@ -5,7 +5,8 @@
 
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { QuoteCalc } from "@/lib/calc";
-import { milestoneAmounts } from "@/lib/calc";
+import { delegatedCategories, milestoneAmounts } from "@/lib/calc";
+import { ENGAGEMENT_LABEL } from "@/lib/constants";
 import { amountInWords, formatDate, num, rupees } from "@/lib/format";
 import type { Project, ScopeItem, Settings } from "@/lib/types";
 
@@ -123,15 +124,22 @@ export function ProposalDocument({
   issuedOn: Date;
 }) {
   const validUntil = new Date(issuedOn.getTime() + project.quote.validityDays * 86400000);
-  const rooms = groupBy(project.items, (i) => i.room);
+  const engagement = project.engagement ?? "turnkey";
+  const designOnly = engagement === "design_only";
+  const delegated = delegatedCategories(project);
+  // Work done by the client's own vendors is listed separately and never priced here.
+  const pricedItems = project.items.filter((i) => !delegated.has(i.category));
+  const vendorItems = project.items.filter((i) => delegated.has(i.category));
+  const rooms = groupBy(pricedItems, (i) => i.room);
+  const spaces = project.rooms.filter((r) => r !== "Design services" && r !== "General / site");
   const categories = calc.byCategory;
   const milestoneAmts = milestoneAmounts(calc.grandTotal, project.payment);
   const totalWeeks = project.timeline.reduce((a, p) => a + (Number(p.weeks) || 0), 0);
   const exclusionsByCategory = groupBy(
-    project.items.filter((i) => i.excluded.trim()),
+    pricedItems.filter((i) => i.excluded.trim()),
     (i) => i.category,
   ).map(([cat, items]) => [cat, [...new Set(items.map((i) => i.excluded.trim().replace(/\.$/, "")))]] as [string, string[]]);
-  const deps = [...new Set(project.items.map((i) => i.dependencies.trim()).filter(Boolean))];
+  const deps = [...new Set(pricedItems.map((i) => i.dependencies.trim()).filter(Boolean))];
   const ref = `${project.quoteNumber}${revision > 0 ? ` · R${revision}` : ""}`;
   let sec = 0;
 
@@ -153,7 +161,7 @@ export function ProposalDocument({
         </View>
 
         <View style={{ marginTop: 200 }}>
-          <T style={[s.label, { color: ACCENT }]}>Interior design proposal & quotation</T>
+          <T style={[s.label, { color: ACCENT }]}>{designOnly ? "Interior design proposal" : engagement === "mixed" ? "Interior design & execution proposal" : "Interior design proposal & quotation"}</T>
           <T style={{ fontSize: 34, fontWeight: 300, letterSpacing: -0.8, lineHeight: 1.15, marginTop: 6 }}>{project.name}</T>
           <T style={{ fontSize: 11, color: INK2, marginTop: 8 }}>
             {[project.propertyType, project.location].filter(Boolean).join(" · ")}
@@ -197,7 +205,8 @@ export function ProposalDocument({
             <KV k="Site" v={project.clientAddress || project.location} />
             <KV k="Property" v={project.propertyType} />
             <KV k="Carpet area" v={project.carpetArea ? `${num(project.carpetArea)} sq.ft` : ""} />
-            <KV k="Spaces in scope" v={rooms.map(([r]) => r).join(", ")} />
+            <KV k="Engagement" v={ENGAGEMENT_LABEL[engagement]} />
+            <KV k="Spaces in scope" v={(spaces.length ? spaces : rooms.map(([r]) => r)).join(", ")} />
             <KV k="Estimated duration" v={totalWeeks ? `${totalWeeks} weeks from design sign-off` : ""} />
             {project.description ? <T style={{ marginTop: 10, color: INK2 }}>{project.description}</T> : null}
           </View>
@@ -218,7 +227,7 @@ export function ProposalDocument({
         </View>
 
         {/* 3. Scope of work */}
-        <SectionHead n={++sec} title="Scope of work" breakBefore />
+        <SectionHead n={++sec} title={designOnly ? "Scope of services" : "Scope of work"} breakBefore />
         {rooms.map(([room, items]) => (
           <View key={room} style={{ marginBottom: 8 }}>
             <View wrap={false} minPresenceAhead={70}>
@@ -239,7 +248,7 @@ export function ProposalDocument({
         ))}
 
         {/* 4. Detailed BOQ */}
-        <SectionHead n={++sec} title="Bill of quantities" breakBefore />
+        <SectionHead n={++sec} title={designOnly ? "Fee schedule" : "Bill of quantities"} breakBefore />
         <View style={[s.row, { borderBottomWidth: 0.75, borderBottomColor: INK }]}>
           <T style={[s.th, { width: 22 }]}>No.</T>
           <T style={[s.th, { flex: 1 }]}>Item & specification</T>
@@ -326,12 +335,24 @@ export function ProposalDocument({
         {/* 6. Inclusions & exclusions */}
         <SectionHead n={++sec} title="Inclusions & exclusions" breakBefore />
         <T style={s.h2}>Included</T>
-        {groupBy(project.items, (i) => i.category).map(([cat, items]) => (
+        {groupBy(pricedItems, (i) => i.category).map(([cat, items]) => (
           <View key={cat} style={[s.row, s.rule, { paddingVertical: 3.5 }]} wrap={false}>
             <T style={{ width: 120, fontWeight: 500 }}>{cat}</T>
             <T style={{ flex: 1, color: INK2 }}>{[...new Set(items.map((i) => i.item))].join(", ")}</T>
           </View>
         ))}
+        {vendorItems.length > 0 && (
+          <>
+            <T style={[s.h2, { marginTop: 14 }]}>By the client&apos;s vendors — coordinated by us, not in this price</T>
+            {groupBy(vendorItems, (i) => i.category).map(([cat, items]) => (
+              <View key={cat} style={[s.row, s.rule, { paddingVertical: 3.5 }]} wrap={false}>
+                <T style={{ width: 120, fontWeight: 500 }}>{cat}</T>
+                <T style={{ width: 110, color: INK2 }}>{project.delegated?.[cat]?.vendor || "Client's vendor"}</T>
+                <T style={{ flex: 1, color: INK2 }}>{[...new Set(items.map((i) => `${i.item} (${i.room})`))].join(", ")}</T>
+              </View>
+            ))}
+          </>
+        )}
         <T style={[s.h2, { marginTop: 14 }]}>Not included — general</T>
         {project.generalExclusions.map((x, i) => (
           <Bullet key={i}>{x}</Bullet>
