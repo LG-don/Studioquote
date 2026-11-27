@@ -138,6 +138,7 @@ export interface Project {
   terms: string[];
   generalExclusions: string[];
   quoteNumber: string;
+  plan?: CostPlan;
   status: ProjectStatus;
   versions: Version[];
   isSample?: boolean;
@@ -155,6 +156,30 @@ export interface Rate {
   labourRate: number;
   notes: string;
   isSample: boolean;
+}
+
+/** A salaried team member whose cost is shared across ongoing projects. */
+export interface StaffMember {
+  id: string;
+  role: string;
+  monthlySalary: number;
+}
+
+/** The studio's monthly running costs, used only for internal costing. */
+export interface StudioCosts {
+  ownMonthlyPay: number; // what the principal designer wants to earn per month
+  staff: StaffMember[];
+  otherMonthly: number; // rent, software, travel, utilities…
+  renderCost: number; // cost to produce one 3D render
+}
+
+/** Internal plan for a fee-based project. Never shown to the client. */
+export interface CostPlan {
+  startMonth: string; // "2026-12"
+  months: number;
+  visits: number;
+  renders: number;
+  renderCost: number | null; // null = studio default
 }
 
 export interface Settings {
@@ -180,4 +205,5 @@ export interface Settings {
   timeline: Phase[];
   terms: string[];
   generalExclusions: string[];
+  studioCosts?: StudioCosts;
 }

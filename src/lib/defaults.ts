@@ -53,6 +53,22 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
 };
 
+/** Stage payments for design-only work. */
+export const DESIGN_STAGES = [
+  { label: "On signing the design agreement", pct: 20 },
+  { label: "On approval of concept and layouts", pct: 30 },
+  { label: "On delivery of 3D views and working drawings", pct: 30 },
+  { label: "During site support, before handover", pct: 20 },
+];
+
+/** Timeline phases for design-only work. */
+export const DESIGN_PHASES = [
+  { label: "Measurement, brief and concept", weeks: 2 },
+  { label: "Layouts and 3D views", weeks: 3 },
+  { label: "Working drawings and material selection", weeks: 3 },
+  { label: "Site support during execution", weeks: 8 },
+];
+
 export function quoteFromSettings(s: Settings, sameState: boolean): QuoteSettings {
   return {
     overheadPct: s.defaults.overheadPct,
@@ -158,6 +174,16 @@ export function sampleSettings(): Settings {
     website: "ateliersample.in",
     gstin: "27ABCDE1234F1Z5",
     state: "Maharashtra",
+    // Sample figures for the demo — replace with your own.
+    studioCosts: {
+      ownMonthlyPay: 100000,
+      staff: [
+        { id: "st1", role: "Junior designer", monthlySalary: 25000 },
+        { id: "st2", role: "Design intern", monthlySalary: 10000 },
+      ],
+      otherMonthly: 30000,
+      renderCost: 1500,
+    },
   };
 }
 

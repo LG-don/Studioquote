@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useData } from "@/lib/data";
-import { newProject } from "@/lib/defaults";
+import { DESIGN_PHASES, DESIGN_STAGES, newProject } from "@/lib/defaults";
+import { defaultPlan } from "@/lib/costing";
+import { uid } from "@/lib/ids";
 import type { Project } from "@/lib/types";
 import { EngagementPicker, ProjectFields } from "@/components/ProjectFields";
 import { Button, LinkButton, Loading, PageHeader } from "@/components/ui";
@@ -25,6 +27,13 @@ export default function NewProjectPage() {
       ...draft,
       name: draft.name.trim() || "Untitled project",
       delegated: draft.engagement === "mixed" ? draft.delegated : {},
+      ...(draft.engagement === "design_only"
+        ? {
+            payment: DESIGN_STAGES.map((m) => ({ ...m, id: uid("m") })),
+            timeline: DESIGN_PHASES.map((t) => ({ ...t, id: uid("t") })),
+          }
+        : {}),
+      ...(draft.engagement !== "turnkey" ? { plan: defaultPlan() } : {}),
       items: [], // every project starts as a clean slate
       quote: {
         ...draft.quote,

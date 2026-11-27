@@ -6,6 +6,7 @@ import { INDIAN_STATES } from "@/lib/constants";
 import { useData } from "@/lib/data";
 import type { Settings } from "@/lib/types";
 import { LinesEditor, MilestonesEditor, PhasesEditor } from "@/components/Editors";
+import { StudioCostsEditor } from "@/components/StudioCostsEditor";
 import { Button, Card, Field, Input, Loading, NumberInput, PageHeader, Select } from "@/components/ui";
 
 const numCls = "h-9 w-full rounded-md border border-line-2 bg-white px-3 text-right text-sm outline-none focus:border-accent";
@@ -103,6 +104,12 @@ export default function SettingsPage() {
             <Field label="GST rate %"><NumberInput value={s.defaults.gstRatePct} allowNull={false} onChange={(v) => patchDefaults({ gstRatePct: v ?? 0 })} className={numCls} /></Field>
             <Field label="Quote valid (days)"><NumberInput value={s.defaults.validityDays} allowNull={false} onChange={(v) => patchDefaults({ validityDays: v ?? 0 })} className={numCls} /></Field>
           </div>
+        </Card>
+
+        <Card className="p-5">
+          <h3 className="mb-1 text-sm font-semibold">Studio running costs · internal</h3>
+          <p className="mb-4 text-xs text-ink-3">Used to show what each design fee really leaves you after staff, site visits, renders and running costs.</p>
+          <StudioCostsEditor value={s.studioCosts} onChange={(studioCosts) => patch({ studioCosts })} />
         </Card>
 
         <Card className="p-5">

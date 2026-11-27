@@ -121,6 +121,9 @@ export function runScopeGuard(p: Project, calc: QuoteCalc, rates: Rate[]): Findi
     if (unnamed.length) add({ id: "vendors", severity: "info", title: "Vendors not named", detail: `Name who is doing: ${unnamed.join(", ")}. It appears in the proposal so responsibilities are clear.`, target: "brief" });
     if (!p.items.some((i) => i.category === FEE_CATEGORY)) add({ id: "coord-fee", severity: "info", title: "No design or coordination fee", detail: "Add your design and vendor-coordination fees in the Design services section.", target: "quote" });
   }
+  if (engagement !== "turnkey" && !p.plan) {
+    add({ id: "plan", severity: "info", title: "Costs not planned", detail: "Plan duration, visits and renders on the Quote tab to see what this fee leaves you.", target: "quote" });
+  }
   if (engagement === "design_only" && !p.items.some((i) => i.category === FEE_CATEGORY)) {
     add({ id: "design-fee", severity: "blocker", title: "No design fee lines", detail: "Add your design fee in the Design services section of the Quote.", target: "quote" });
   }

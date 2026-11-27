@@ -99,7 +99,7 @@ export default function ProjectsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState title="No matching projects" />
       ) : (
-        <ProjectTable projects={filtered} onDelete={remove} onDuplicate={duplicate} />
+        <ProjectTable projects={filtered} all={projects} onDelete={remove} onDuplicate={duplicate} />
       )}
     </div>
   );

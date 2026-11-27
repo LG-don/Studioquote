@@ -11,6 +11,7 @@ import { rupees } from "@/lib/format";
 import { runScopeGuard } from "@/lib/scopeguard";
 import type { ProjectStatus } from "@/lib/types";
 import { STATUS_LABEL } from "@/components/ProjectTable";
+import { useKeep } from "@/components/useKeep";
 import { cx, EmptyState, LinkButton, Loading } from "@/components/ui";
 
 export default function ProjectLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   const { project, loading, saveState, update } = state;
 
   const calc = useMemo(() => (project ? calcProject(project) : null), [project]);
+  const keep = useKeep(project);
   const findings = useMemo(() => (project && calc ? runScopeGuard(project, calc, rates) : []), [project, calc, rates]);
 
   if (loading) return <Loading />;
@@ -76,10 +78,10 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                 <div className="tabular text-[17px] font-semibold">{rupees(calc.grandTotal)}</div>
               </div>
               <div>
-                <div className="text-xs text-ink-3">Your profit</div>
-                <div className={cx("tabular text-[17px] font-semibold", calc.profit < 0 ? "text-red-700" : "text-emerald-700")}>
-                  {rupees(calc.profit)}
-                  <span className="ml-1 text-xs font-normal text-ink-3">{calc.taxable ? `${calc.marginPct.toFixed(1)}%` : ""}</span>
+                <div className="text-xs text-ink-3">{keep?.planned ? "You keep (after costs)" : "Your profit"}</div>
+                <div className={cx("tabular text-[17px] font-semibold", (keep?.value ?? calc.profit) < 0 ? "text-red-700" : "text-emerald-700")}>
+                  {rupees(keep?.value ?? calc.profit)}
+                  <span className="ml-1 text-xs font-normal text-ink-3">{calc.taxable ? `${(keep?.pct ?? calc.marginPct).toFixed(1)}%` : ""}</span>
                 </div>
               </div>
             </div>

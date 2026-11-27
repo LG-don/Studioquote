@@ -132,7 +132,8 @@ export function ProposalDocument({
   const vendorItems = project.items.filter((i) => delegated.has(i.category));
   const rooms = groupBy(pricedItems, (i) => i.room);
   const spaces = project.rooms.filter((r) => r !== "Design services" && r !== "General / site");
-  const categories = calc.byCategory;
+  // Design-only: the client sees one professional fee, never how it was built up.
+  const categories = designOnly ? [{ key: "Professional design fee", client: calc.clientSubtotal, cost: 0, count: 1 }] : calc.byCategory;
   const milestoneAmts = milestoneAmounts(calc.grandTotal, project.payment);
   const totalWeeks = project.timeline.reduce((a, p) => a + (Number(p.weeks) || 0), 0);
   const exclusionsByCategory = groupBy(
@@ -211,7 +212,7 @@ export function ProposalDocument({
             {project.description ? <T style={{ marginTop: 10, color: INK2 }}>{project.description}</T> : null}
           </View>
           <View style={{ width: 200 }}>
-            <T style={s.label}>Investment by space</T>
+            <T style={s.label}>{designOnly ? "Fee" : "Investment by space"}</T>
             {calc.byRoom.map((r) => (
               <View key={r.key} style={[s.row, s.rule, { paddingVertical: 3.5 }]}>
                 <T style={{ flex: 1 }}>{r.key}</T>
@@ -247,8 +248,10 @@ export function ProposalDocument({
           </View>
         ))}
 
+        {!designOnly && (
+          <>
         {/* 4. Detailed BOQ */}
-        <SectionHead n={++sec} title={designOnly ? "Fee schedule" : "Bill of quantities"} breakBefore />
+        <SectionHead n={++sec} title="Bill of quantities" breakBefore />
         <View style={[s.row, { borderBottomWidth: 0.75, borderBottomColor: INK }]}>
           <T style={[s.th, { width: 22 }]}>No.</T>
           <T style={[s.th, { flex: 1 }]}>Item & specification</T>
@@ -292,11 +295,14 @@ export function ProposalDocument({
           );
         })}
 
+          </>
+        )}
+
         {/* 5. Commercial summary */}
-        <SectionHead n={++sec} title="Commercial summary" breakBefore />
+        <SectionHead n={++sec} title={designOnly ? "Professional fee" : "Commercial summary"} breakBefore />
         <View style={{ width: 340 }}>
           <View style={[s.row, { borderBottomWidth: 0.75, borderBottomColor: INK }]}>
-            <T style={[s.th, { flex: 1 }]}>Work category</T>
+            <T style={[s.th, { flex: 1 }]}>{designOnly ? "Description" : "Work category"}</T>
             <T style={[s.th, s.right]}>Amount</T>
           </View>
           {categories.map((c) => (
@@ -329,7 +335,9 @@ export function ProposalDocument({
           </T>
         ) : null}
         <T style={[s.muted, { marginTop: 10, fontSize: 7.5 }]}>
-          Final billing is on actual measured quantities at the rates quoted above. Items marked TBD will be quoted once measured or selected.
+          {designOnly
+            ? "The fee covers the scope of services described in this proposal and is payable in the stages below."
+            : "Final billing is on actual measured quantities at the rates quoted above. Items marked TBD will be quoted once measured or selected."}
         </T>
 
         {/* 6. Inclusions & exclusions */}

@@ -16,6 +16,8 @@ import { RatePickerDialog } from "@/components/RatePicker";
 import { DraftModal } from "@/components/quote/DraftModal";
 import { ImportModal } from "@/components/quote/ImportModal";
 import { PricingPanel } from "@/components/quote/PricingPanel";
+import { CostPlanPanel } from "@/components/quote/CostPlanPanel";
+import { useKeep } from "@/components/useKeep";
 import { needsAttention, QuoteRow } from "@/components/quote/QuoteRow";
 import { Button, cx, EmptyState, LinkButton, Modal, NumberInput } from "@/components/ui";
 
@@ -34,6 +36,7 @@ function QuotePage() {
   const { rates } = useData();
   const search = useSearchParams();
   const calc = useMemo(() => calcProject(project), [project]);
+  const keep = useKeep(project);
 
   const [groupBy, setGroupBy] = useState<"room" | "category">("room");
   const [detailed, setDetailed] = useState(true);
@@ -134,7 +137,7 @@ function QuotePage() {
   const suggestFor = (room: string) => {
     const items =
       room === DESIGN_ROOM
-        ? designServiceItems(rates, { carpetArea: project.carpetArea, coordination: engagement !== "turnkey" })
+        ? designServiceItems(rates, { carpetArea: project.carpetArea, coordination: engagement !== "turnkey", feeOnly: engagement === "design_only" })
         : room === GENERAL_ROOM
           ? generateFromTemplates([], rates, true, delegated)
           : generateFromTemplates([room], rates, false, delegated);
@@ -361,6 +364,8 @@ function QuotePage() {
         </div>
       )}
 
+      {engagement !== "turnkey" && <CostPlanPanel />}
+
       {project.items.length > 0 && (
         <div className="mt-6 flex justify-end">
           <LinkButton href={`/projects/${project.id}/proposal`} variant="primary">
@@ -379,10 +384,11 @@ function QuotePage() {
             <Total label="GST" value={calc.taxTotal ? rupees(calc.taxTotal) : project.quote.gstMode === "none" ? "Not applied" : "—"} />
             <Total label="Client pays" value={rupees(calc.grandTotal)} strong />
             <Total
-              label="Your profit"
+              label={keep?.planned ? "You keep (after costs)" : "Your profit"}
               value={
-                <span className={calc.profit < 0 ? "text-red-700" : "text-emerald-700"}>
-                  {rupees(calc.profit)} <span className="text-xs font-normal text-ink-3">{calc.taxable ? `${calc.marginPct.toFixed(1)}%` : ""}</span>
+                <span className={(keep?.value ?? 0) < 0 ? "text-red-700" : "text-emerald-700"}>
+                  {rupees(keep?.value ?? calc.profit)}{" "}
+                  <span className="text-xs font-normal text-ink-3">{calc.taxable ? `${(keep?.pct ?? calc.marginPct).toFixed(1)}%` : ""}</span>
                 </span>
               }
               strong

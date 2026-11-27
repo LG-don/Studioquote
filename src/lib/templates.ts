@@ -114,9 +114,10 @@ export const GENERAL_ROOM = "General / site";
 export const DESIGN_ROOM = "Design services";
 
 /** Fee lines for the studio's design work. Design fee quantity = carpet area, when known. */
-export function designServiceItems(rates: Rate[], opts: { carpetArea: number | null; coordination: boolean }): ScopeItem[] {
+export function designServiceItems(rates: Rate[], opts: { carpetArea: number | null; coordination: boolean; feeOnly?: boolean }): ScopeItem[] {
   const byId = new Map(rates.map((r) => [r.id, r]));
-  const ids = ["r-ds-full", "r-ds-3d", "r-ds-visit", ...(opts.coordination ? ["r-ds-coord"] : [])];
+  // Design-only: the client sees one fee. Visits and 3D views are your costs, planned internally.
+  const ids = opts.feeOnly ? ["r-ds-full"] : ["r-ds-full", "r-ds-3d", "r-ds-visit", ...(opts.coordination ? ["r-ds-coord"] : [])];
   return ids.map((id) => {
     const it = itemFromRate(byId.get(id), id, DESIGN_ROOM, "template");
     if (id === "r-ds-full" && opts.carpetArea) it.qty = opts.carpetArea;

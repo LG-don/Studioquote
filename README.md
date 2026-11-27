@@ -18,6 +18,10 @@ StudioQuote takes a project through three steps:
 
 Design-fee lines (category *Design services*) are your fee: priced as entered, never marked up.
 
+### What a fee really leaves you (design only / design + part execution)
+
+On the Quote tab, **What this fee costs you** (internal only) plans duration, site visits and 3D renders. Your monthly pay, team salaries and running costs (Settings → Studio running costs) are shared each month between ongoing fee projects in proportion to what each earns that month — e.g. two ₹3 lakh, 6-month projects each carry half of a ₹25,000 salary. A site visit costs your share of pay + running costs that month ÷ that month's visits, so busy months make visits cheaper. Renders are counted at your fixed cost per render. Projects count as ongoing once marked Sent or Approved. The client only ever sees the fee and its stage payments.
+
 ## What's new (UX update, Nov 2026)
 
 Based on [competitor research](docs/competitor-research.md) — the most common complaint about interior design software is "too many menus and steps":

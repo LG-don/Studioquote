@@ -56,7 +56,7 @@ export function DraftModal({
         const physical = selected.filter((r) => r !== GENERAL_ROOM && r !== DESIGN_ROOM);
         const engagement = project.engagement ?? "turnkey";
         const items = [
-          ...(selected.includes(DESIGN_ROOM) ? designServiceItems(rates, { carpetArea: project.carpetArea, coordination: engagement !== "turnkey" }) : []),
+          ...(selected.includes(DESIGN_ROOM) ? designServiceItems(rates, { carpetArea: project.carpetArea, coordination: engagement !== "turnkey", feeOnly: engagement === "design_only" }) : []),
           ...(engagement === "design_only" ? [] : generateFromTemplates(physical, rates, selected.includes(GENERAL_ROOM), delegatedCategories(project))),
         ];
         onDone(items, replace ? selected : [], []);

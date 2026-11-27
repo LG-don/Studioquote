@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { calcProject } from "@/lib/calc";
 import { useData } from "@/lib/data";
 import { DEFAULT_SETTINGS, sampleProject } from "@/lib/defaults";
+import { keepFor } from "@/lib/costing";
 import { rupeesShort } from "@/lib/format";
 import type { Project } from "@/lib/types";
 import { ProjectTable } from "@/components/ProjectTable";
@@ -29,7 +30,7 @@ export default function Dashboard() {
   const won = approved.reduce((s, t) => s + t.c.grandTotal, 0);
   const priced = totals.filter((t) => t.c.taxable > 0);
   const avgMargin = priced.length ? priced.reduce((s, t) => s + t.c.marginPct, 0) / priced.length : 0;
-  const expectedProfit = open.reduce((s, t) => s + t.c.profit, 0);
+  const expectedProfit = open.reduce((s, t) => s + keepFor(t.p, projects, settings.studioCosts).value, 0);
 
   const loadSample = async () => {
     await store.saveProject(sampleProject(settings));
@@ -62,7 +63,7 @@ export default function Dashboard() {
         {[
           { label: "Active projects", value: String(open.length) },
           { label: "Quotes in progress", value: rupeesShort(pipeline), sub: "incl. GST" },
-          { label: "Expected profit on open quotes", value: rupeesShort(expectedProfit) },
+          { label: "You keep on open quotes", value: rupeesShort(expectedProfit) },
           { label: "Average margin", value: `${avgMargin.toFixed(1)}%`, sub: approved.length ? `${rupeesShort(won)} approved` : undefined },
         ].map((s) => (
           <Card key={s.label} className="px-4 py-3.5">
@@ -90,7 +91,7 @@ export default function Dashboard() {
           }
         />
       ) : (
-        <ProjectTable projects={projects.slice(0, 6)} />
+        <ProjectTable projects={projects.slice(0, 6)} all={projects} />
       )}
 
       <div className="mt-10 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
