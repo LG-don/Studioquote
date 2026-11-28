@@ -109,8 +109,12 @@ export function calcLine(item: ScopeItem, factor: number, excluded = false): Lin
   };
 }
 
-/** Categories handed to the client's own vendors (mixed engagement only). */
-export function delegatedCategories(p: { engagement?: Project["engagement"]; delegated?: Project["delegated"] }): Set<string> {
+/**
+ * Categories left out of the price: work handed to the client's vendors (mixed), or —
+ * in a design-only job — every non-fee line (e.g. lines left over from before the switch).
+ */
+export function delegatedCategories(p: { engagement?: Project["engagement"]; delegated?: Project["delegated"]; items?: ScopeItem[] }): Set<string> {
+  if (p.engagement === "design_only") return new Set((p.items ?? []).map((i) => i.category).filter((c) => c !== FEE_CATEGORY));
   return new Set(p.engagement === "mixed" ? Object.keys(p.delegated ?? {}) : []);
 }
 

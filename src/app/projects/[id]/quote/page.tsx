@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Download, ListChecks, Plus, Search, SlidersHorizontal, Sparkles, Upload, Wand2, X } from "lucide-react";
-import { UNITS } from "@/lib/constants";
+import { FEE_CATEGORY, UNITS } from "@/lib/constants";
 import { useData, useProject } from "@/lib/data";
 import { exportProjectWorkbook } from "@/lib/excel";
 import { rupees } from "@/lib/format";
@@ -72,7 +72,7 @@ function QuotePage() {
   // Design fees sit in their own section at the top. In a design-only job that is the whole quote.
   const rooms = useMemo(() => {
     const physical = [...new Set([...project.rooms, ...project.items.map((i) => i.room)])].filter((r) => r !== DESIGN_ROOM);
-    return engagement === "design_only" ? [DESIGN_ROOM, ...physical.filter((r) => project.items.some((i) => i.room === r))] : [DESIGN_ROOM, ...physical];
+    return engagement === "design_only" ? [DESIGN_ROOM] : [DESIGN_ROOM, ...physical];
   }, [project.rooms, project.items, engagement]);
   const attentionItems = project.items.filter((it) => needsAttention(it, calc.lines[it.id]));
 
@@ -159,18 +159,26 @@ function QuotePage() {
     if (next) (document.querySelector(`[data-qty="${next}"]`) as HTMLInputElement | null)?.focus();
   };
 
+  // Design-only: work lines (e.g. left over from before the switch) are hidden and not priced.
+  const leftover = engagement === "design_only" ? project.items.filter((i) => i.category !== FEE_CATEGORY) : [];
+  const [showLeftover, setShowLeftover] = useState(false);
   const filtered = project.items.filter((it) => {
+    if (leftover.includes(it) && !showLeftover) return false;
     if (onlyAttention && !needsAttention(it, calc.lines[it.id])) return false;
     if (q && !`${it.item} ${it.specification} ${it.brand} ${it.category}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
-  const groupKeys = groupBy === "room" ? rooms : [...new Set(project.items.map((i) => i.category))];
+  const groupKeys =
+    groupBy === "room"
+      ? [...rooms, ...(showLeftover ? [...new Set(leftover.map((i) => i.room))].filter((r) => !rooms.includes(r)) : [])]
+      : [...new Set(project.items.map((i) => i.category))];
   const groups = groupKeys
     .map((k) => ({ key: k, items: filtered.filter((i) => (groupBy === "room" ? i.room : i.category) === k) }))
     .filter((g) => g.items.length > 0 || (groupBy === "room" && !onlyAttention && !q));
   groups.forEach((g) => g.items.forEach((i) => visibleOrder.push(i.id)));
 
-  const complete = project.items.length - attentionItems.length;
+  const lineCount = project.items.length - leftover.length;
+  const complete = lineCount - attentionItems.length;
 
   return (
     <div className="mx-auto max-w-[1240px] pb-24">
@@ -231,12 +239,34 @@ function QuotePage() {
                   Next <ArrowRight size={13} />
                 </Button>
               </>
-            ) : (
+            ) : lineCount === 0 ? null : (
               <span className="inline-flex items-center gap-1.5 text-[13px] text-emerald-700">
-                <ListChecks size={14} /> {project.items.length === 1 ? "The only line is priced" : `All ${project.items.length} lines priced`}
+                <ListChecks size={14} /> {lineCount === 1 ? "The only line is priced" : `All ${lineCount} lines priced`}
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {leftover.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span>
+            This project has <strong>{leftover.length} work lines</strong> from before it was design only. They&apos;re hidden and not part of the fee.
+          </span>
+          <span className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setShowLeftover(!showLeftover)}>
+              {showLeftover ? "Hide them" : "Show them"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (confirm(`Remove ${leftover.length} work lines from this project? You can still find them in History if a version was saved.`))
+                  update((p) => ({ ...p, items: p.items.filter((i) => i.category === FEE_CATEGORY) }));
+              }}
+            >
+              Remove them
+            </Button>
+          </span>
         </div>
       )}
 
@@ -336,7 +366,7 @@ function QuotePage() {
                     <QuoteRow
                       key={it.id}
                       it={it}
-                      byVendor={delegated.has(it.category) ? project.delegated?.[it.category]?.vendor || "Client's vendor" : null}
+                      byVendor={delegated.has(it.category) ? (engagement === "design_only" ? "Not in design fee" : project.delegated?.[it.category]?.vendor || "Client's vendor") : null}
                       line={calc.lines[it.id]}
                       detailed={detailed}
                       expanded={!!expanded[it.id]}
@@ -378,7 +408,7 @@ function QuotePage() {
       {project.items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white/95 backdrop-blur md:left-[232px] print:hidden">
           <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5 md:px-8">
-            <Total label="Priced" value={`${complete}/${project.items.length} lines`} />
+            <Total label="Priced" value={`${complete}/${lineCount} lines`} />
             <Total label="Subtotal" value={rupees(calc.clientSubtotal)} />
             {calc.discountAmount > 0 && <Total label="Discount" value={`− ${rupees(calc.discountAmount)}`} />}
             <Total label="GST" value={calc.taxTotal ? rupees(calc.taxTotal) : project.quote.gstMode === "none" ? "Not applied" : "—"} />

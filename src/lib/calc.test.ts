@@ -165,3 +165,14 @@ describe("engagement types", () => {
     expect(turnkey.incompleteCount).toBe(1);
   });
 });
+
+describe("design-only projects", () => {
+  it("leave any work lines out of the totals", () => {
+    const fee = item({ category: "Design services", qty: 1, materialRate: 0, labourRate: 300000 });
+    const work = item({ category: "Flooring", qty: null });
+    const r = calcProject({ items: [fee, work], quote: { ...base, gstMode: "none", showContingency: false }, engagement: "design_only" });
+    expect(r.clientSubtotal).toBe(300000);
+    expect(r.lines[work.id].excluded).toBe(true);
+    expect(r.incompleteCount).toBe(0);
+  });
+});

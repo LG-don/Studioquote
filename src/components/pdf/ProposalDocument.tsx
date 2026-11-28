@@ -129,7 +129,8 @@ export function ProposalDocument({
   const delegated = delegatedCategories(project);
   // Work done by the client's own vendors is listed separately and never priced here.
   const pricedItems = project.items.filter((i) => !delegated.has(i.category));
-  const vendorItems = project.items.filter((i) => delegated.has(i.category));
+  // Design-only: leftover work lines are simply not part of the proposal.
+  const vendorItems = designOnly ? [] : project.items.filter((i) => delegated.has(i.category));
   const rooms = groupBy(pricedItems, (i) => i.room);
   const spaces = project.rooms.filter((r) => r !== "Design services" && r !== "General / site");
   // Design-only: the client sees one professional fee, never how it was built up.

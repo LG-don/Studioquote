@@ -38,7 +38,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   const base = `/projects/${id}`;
   const tabs = [
     { href: base, label: "Details", n: "1" },
-    { href: `${base}/quote`, label: "Quote", n: "2", count: project.items.length || undefined },
+    { href: `${base}/quote`, label: "Quote", n: "2", count: (project.engagement === "design_only" ? project.items.filter((i) => i.category === "Design services").length : project.items.length) || undefined },
     { href: `${base}/proposal`, label: "Check & send", n: "3", alert: blockers + warnings || undefined },
     { href: `${base}/versions`, label: "History", count: project.versions.length || undefined },
   ];
