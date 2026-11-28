@@ -394,7 +394,7 @@ function QuotePage() {
         </div>
       )}
 
-      {engagement !== "turnkey" && <CostPlanPanel />}
+      <CostPlanPanel />
 
       {project.items.length > 0 && (
         <div className="mt-6 flex justify-end">
@@ -414,7 +414,7 @@ function QuotePage() {
             <Total label="GST" value={calc.taxTotal ? rupees(calc.taxTotal) : project.quote.gstMode === "none" ? "Not applied" : "—"} />
             <Total label="Client pays" value={rupees(calc.grandTotal)} strong />
             <Total
-              label={keep?.planned ? "You keep (after costs)" : "Your profit"}
+              label={keep?.planned ? "Studio earns" : "Your profit"}
               value={
                 <span className={(keep?.value ?? 0) < 0 ? "text-red-700" : "text-emerald-700"}>
                   {rupees(keep?.value ?? calc.profit)}{" "}

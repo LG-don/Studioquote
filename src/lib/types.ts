@@ -167,7 +167,8 @@ export interface StaffMember {
 
 /** The studio's monthly running costs, used only for internal costing. */
 export interface StudioCosts {
-  ownMonthlyPay: number; // what the principal designer wants to earn per month
+  drawsSalary?: boolean; // does the principal designer take a fixed monthly salary?
+  ownMonthlyPay: number; // that salary (only counted when drawsSalary)
   staff: StaffMember[];
   otherMonthly: number; // rent, software, travel, utilities…
   renderCost: number; // cost to produce one 3D render

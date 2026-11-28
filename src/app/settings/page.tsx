@@ -96,7 +96,7 @@ export default function SettingsPage() {
 
         <Card className="p-5">
           <h3 className="mb-1 text-sm font-semibold">Pricing defaults</h3>
-          <p className="mb-4 text-xs text-ink-3">Applied to new projects. You can change them per project on the Pricing tab.</p>
+          <p className="mb-4 text-xs text-ink-3">Applied to new projects. You can change them per project on the Quote tab.</p>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <Field label="Overheads %"><NumberInput value={s.defaults.overheadPct} allowNull={false} onChange={(v) => patchDefaults({ overheadPct: v ?? 0 })} className={numCls} /></Field>
             <Field label="Profit %"><NumberInput value={s.defaults.profitPct} allowNull={false} onChange={(v) => patchDefaults({ profitPct: v ?? 0 })} className={numCls} /></Field>
@@ -108,7 +108,7 @@ export default function SettingsPage() {
 
         <Card className="p-5">
           <h3 className="mb-1 text-sm font-semibold">Studio running costs · internal</h3>
-          <p className="mb-4 text-xs text-ink-3">Used to show what each design fee really leaves you after staff, site visits, renders and running costs.</p>
+          <p className="mb-4 text-xs text-ink-3">Used to work out your cost per site visit and what each project really earns the studio.</p>
           <StudioCostsEditor value={s.studioCosts} onChange={(studioCosts) => patch({ studioCosts })} />
         </Card>
 

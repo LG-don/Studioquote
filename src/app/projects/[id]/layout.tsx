@@ -78,7 +78,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                 <div className="tabular text-[17px] font-semibold">{rupees(calc.grandTotal)}</div>
               </div>
               <div>
-                <div className="text-xs text-ink-3">{keep?.planned ? "You keep (after costs)" : "Your profit"}</div>
+                <div className="text-xs text-ink-3">{keep?.planned ? "Studio earns" : "Your profit"}</div>
                 <div className={cx("tabular text-[17px] font-semibold", (keep?.value ?? calc.profit) < 0 ? "text-red-700" : "text-emerald-700")}>
                   {rupees(keep?.value ?? calc.profit)}
                   <span className="ml-1 text-xs font-normal text-ink-3">{calc.taxable ? `${(keep?.pct ?? calc.marginPct).toFixed(1)}%` : ""}</span>

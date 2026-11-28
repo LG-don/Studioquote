@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Lock } from "lucide-react";
-import { costProject, defaultPlan, monthLabel, ongoingPortfolio } from "@/lib/costing";
+import { costProject, defaultPlan, monthLabel, notCounted, ongoingPortfolio, salaryOf } from "@/lib/costing";
 import { useData, useProject } from "@/lib/data";
 import { rupees } from "@/lib/format";
 import type { CostPlan, Project } from "@/lib/types";
@@ -12,8 +12,9 @@ import { Button, Card, cx, NumberInput } from "@/components/ui";
 const box = "h-9 w-full rounded-md border border-line-2 bg-white px-3 text-sm outline-none focus:border-accent";
 
 /**
- * What a design fee really leaves the studio: team, site visits, renders and running
- * costs, shared month by month with the other ongoing projects. Internal only.
+ * What a project really earns the studio after team, your salary (if you draw one),
+ * running costs and renders — shared month by month with the other ongoing projects.
+ * Internal only.
  */
 export function CostPlanPanel() {
   const { project, update } = useProject();
@@ -24,43 +25,44 @@ export function CostPlanPanel() {
   }, [store]);
 
   const costs = settings?.studioCosts;
-  const hasCosts = !!costs && (costs.ownMonthlyPay > 0 || costs.otherMonthly > 0 || costs.staff.length > 0 || costs.renderCost > 0);
+  const hasCosts = !!costs && (salaryOf(costs) > 0 || costs.otherMonthly > 0 || costs.staff.length > 0 || costs.renderCost > 0);
   const portfolio = useMemo(() => ongoingPortfolio(all.filter((p) => p.id !== project.id)), [all, project.id]);
-  const result = useMemo(() => costProject(project, portfolio, costs), [project, portfolio, costs]);
+  const missing = useMemo(() => notCounted(all, project.id), [all, project.id]);
+  const r = useMemo(() => costProject(project, portfolio, costs), [project, portfolio, costs]);
   const plan = project.plan;
+  const engagement = project.engagement ?? "turnkey";
   const setPlan = (patch: Partial<CostPlan>) => update((p) => ({ ...p, plan: { ...(p.plan ?? defaultPlan()), ...patch } }));
 
   const header = (
-    <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-      <div>
-        <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
-          <Lock size={14} className="text-ink-3" /> What this fee costs you
-        </h3>
-        <p className="text-xs text-ink-3">Internal only — the client sees just the fee and its stage payments.</p>
-      </div>
+    <div className="mb-4">
+      <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
+        <Lock size={14} className="text-ink-3" /> What this project earns your studio
+      </h3>
+      <p className="text-xs text-ink-3">Internal only — the client never sees this.</p>
     </div>
   );
 
-  if (!plan || !result) {
+  if (!plan || !r) {
     return (
       <Card className="mt-6 p-5">
         {header}
-        <p className="mb-3 text-sm text-ink-2">Plan the duration, site visits and 3D renders to see what this fee leaves you after team and running costs.</p>
+        <p className="mb-3 text-sm text-ink-2">
+          Add the months, site visits and 3D renders to see your cost per site visit and what the studio really earns after team and running costs.
+        </p>
         <Button variant="primary" onClick={() => setPlan({})}>
-          Plan this project&apos;s costs
+          Plan this project
         </Button>
       </Card>
     );
   }
 
-  const perVisit = result.months.map((m) => m.perVisit).filter((v): v is number => v !== null);
-  const minV = perVisit.length ? Math.min(...perVisit) : 0;
-  const maxV = perVisit.length ? Math.max(...perVisit) : 0;
-  const tiles: [string, number, string?][] = [
-    ["Fee (excl. GST)", result.fee],
-    ["Team", -result.staff],
-    ["Running costs", -result.running],
-    ["3D renders", -result.renders],
+  const earnedLabel = engagement === "design_only" ? "Fee (excl. GST)" : "Earned after material & labour";
+  const parts: [string, number][] = [
+    [earnedLabel, r.earned],
+    ["Team", -r.team],
+    ...(r.drawsSalary ? ([["Your salary", -r.salary]] as [string, number][]) : []),
+    ["Running costs", -r.running],
+    ["3D renders", -r.renders],
   ];
 
   return (
@@ -92,69 +94,77 @@ export function CostPlanPanel() {
 
       {!hasCosts && (
         <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Add your monthly pay, team salaries and running costs in{" "}
+          Add your team, running costs and salary choice in{" "}
           <Link href="/settings" className="font-medium underline">
-            Settings
+            Settings → Studio running costs
           </Link>{" "}
           to see the full picture.
         </p>
       )}
-      {result.fee === 0 && <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Add your design fee above — costs are shared by what each project earns.</p>}
+      {r.earned === 0 && <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Price the quote first — costs are shared by what each project earns.</p>}
 
-      <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-6">
-        {tiles.map(([label, v]) => (
-          <div key={label} className="bg-white px-3 py-2.5">
-            <div className="text-[11px] text-ink-3">{label}</div>
-            <div className="tabular text-[15px] font-semibold">{v < 0 ? `− ${rupees(-v)}` : rupees(v)}</div>
+      {/* Two headline numbers */}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-line bg-white px-4 py-3">
+          <div className="text-xs text-ink-3">Cost of one site visit</div>
+          <div className="tabular text-2xl font-semibold tracking-tight">{r.perVisit !== null ? rupees(r.perVisit) : "—"}</div>
+          <div className="text-xs text-ink-3">
+            {r.perVisit === null
+              ? "Add site visits to see this."
+              : r.perVisitRange && r.perVisitRange[0] !== r.perVisitRange[1]
+                ? `Between ${rupees(r.perVisitRange[0])} and ${rupees(r.perVisitRange[1])} depending on the month — cheaper when more projects run alongside or you visit more often.`
+                : `Your ${r.drawsSalary ? "salary and " : ""}running costs for this project ÷ ${plan.visits} visits. Drops as more projects run alongside.`}
           </div>
-        ))}
-        <div className="bg-emerald-50/60 px-3 py-2.5">
-          <div className="text-[11px] text-ink-3">You keep</div>
-          <div className={cx("tabular text-[15px] font-semibold", result.keep < 0 ? "text-red-700" : "text-emerald-700")}>{rupees(result.keep)}</div>
         </div>
-        <div className="bg-white px-3 py-2.5">
-          <div className="text-[11px] text-ink-3">After your own pay ({rupees(result.ownPay)})</div>
-          <div className={cx("tabular text-[15px] font-semibold", result.profitAfterPay < 0 ? "text-red-700" : "text-ink")}>{rupees(result.profitAfterPay)}</div>
+        <div className={cx("rounded-lg border px-4 py-3", r.studioEarns < 0 ? "border-red-200 bg-red-50/50" : "border-emerald-200 bg-emerald-50/50")}>
+          <div className="text-xs text-ink-3">Studio earns from this project</div>
+          <div className={cx("tabular text-2xl font-semibold tracking-tight", r.studioEarns < 0 ? "text-red-700" : "text-emerald-700")}>{rupees(r.studioEarns)}</div>
+          <div className="text-xs text-ink-3">
+            {r.drawsSalary
+              ? `After paying your fixed salary (${rupees(salaryOf(costs))}/month, ${rupees(r.salary)} charged to this project).`
+              : "You don't draw a fixed salary, so this is what the studio — and you — earn."}
+          </div>
         </div>
       </div>
 
-      {result.avgPerVisit !== null && (
-        <p className="mt-3 text-sm text-ink-2">
-          A site visit costs you about <strong>{rupees(result.avgPerVisit)}</strong>
-          {minV !== maxV && (
-            <span className="text-ink-3">
-              {" "}
-              — from {rupees(minV)} in busy months to {rupees(maxV)} when this is your only project
-            </span>
-          )}
-          .
-        </p>
-      )}
+      {/* How it adds up */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-canvas px-3 py-2 text-[13px]">
+        {parts.map(([label, v], i) => (
+          <span key={label} className="whitespace-nowrap">
+            {i > 0 && <span className="mr-2 text-ink-3">−</span>}
+            <span className="text-ink-3">{label}</span> <span className="tabular font-medium">{rupees(Math.abs(v))}</span>
+          </span>
+        ))}
+        <span className="whitespace-nowrap">
+          <span className="mr-2 text-ink-3">=</span>
+          <span className="tabular font-semibold">{rupees(r.studioEarns)}</span>
+        </span>
+      </div>
 
       <div className="mt-4 overflow-x-auto rounded-md border border-line">
         <table className="w-full min-w-[720px] text-[13px]">
           <thead className="bg-canvas text-left text-xs text-ink-3">
             <tr>
               <th className="px-3 py-2 font-medium">Month</th>
-              <th className="px-3 font-medium">Other projects</th>
+              <th className="px-3 font-medium">Projects running</th>
               <th className="px-3 text-right font-medium">Share of costs</th>
-              <th className="px-3 text-right font-medium">Fee earned</th>
+              <th className="px-3 text-right font-medium">Earned</th>
               <th className="px-3 text-right font-medium">Team</th>
-              <th className="px-3 text-right font-medium">Your time</th>
+              {r.drawsSalary && <th className="px-3 text-right font-medium">Your salary</th>}
               <th className="px-3 text-right font-medium">Running</th>
               <th className="px-3 text-right font-medium">Visits</th>
               <th className="px-3 text-right font-medium">Per visit</th>
             </tr>
           </thead>
           <tbody>
-            {result.months.map((m) => (
+            {r.months.map((m) => (
               <tr key={m.month} className="border-t border-line">
                 <td className="px-3 py-1.5 font-medium">{monthLabel(m.month)}</td>
-                <td className="px-3 text-ink-3">{m.sharingWith ? `${m.sharingWith} running` : "only this one"}</td>
+                <td className="px-3 text-ink-3">{m.sharingWith ? `${m.sharingWith + 1} (this + ${m.sharingWith})` : "only this one"}</td>
                 <td className="tabular px-3 text-right">{Math.round(m.share * 100)}%</td>
-                <td className="tabular px-3 text-right">{rupees(m.fee)}</td>
-                <td className="tabular px-3 text-right">{rupees(m.staff)}</td>
-                <td className="tabular px-3 text-right">{rupees(m.ownPay)}</td>
+                <td className="tabular px-3 text-right">{rupees(m.earned)}</td>
+                <td className="tabular px-3 text-right">{rupees(m.team)}</td>
+                {r.drawsSalary && <td className="tabular px-3 text-right">{rupees(m.salary)}</td>}
                 <td className="tabular px-3 text-right">{rupees(m.running)}</td>
                 <td className="tabular px-3 text-right">{m.visits}</td>
                 <td className="tabular px-3 text-right font-medium">{m.perVisit !== null ? rupees(m.perVisit) : "—"}</td>
@@ -164,12 +174,29 @@ export function CostPlanPanel() {
         </table>
       </div>
 
-      <p className="mt-3 text-xs leading-relaxed text-ink-3">
-        {result.others.length
-          ? `Sharing costs with: ${result.others.map((o) => `${o.name} (${monthLabel(o.months[0])}–${monthLabel(o.months[o.months.length - 1])}, ${rupees(o.monthlyFee)}/month)`).join(" · ")}.`
-          : "No other ongoing projects overlap these months, so this project carries the studio's costs alone."}{" "}
-        Projects count as ongoing once marked Sent or Approved and planned here. Each month&apos;s costs are split by what each project earns that month.
-      </p>
+      <div className="mt-3 space-y-1 text-xs leading-relaxed text-ink-3">
+        <p>
+          {r.others.length
+            ? `Sharing costs with: ${r.others.map((o) => `${o.name} (${monthLabel(o.months[0])}–${monthLabel(o.months[o.months.length - 1])})`).join(" · ")}.`
+            : "No other ongoing project overlaps these months, so this one carries the studio's costs alone."}{" "}
+          Each month&apos;s costs are split by what each project earns that month.
+        </p>
+        {(missing.drafts > 0 || missing.unplanned > 0) && (
+          <p className="text-amber-800">
+            Not counted yet:{" "}
+            {[
+              missing.drafts ? `${missing.drafts} project${missing.drafts === 1 ? " is" : "s are"} still Draft` : "",
+              missing.unplanned ? `${missing.unplanned} ongoing project${missing.unplanned === 1 ? " has" : "s have"} no months planned` : "",
+            ]
+              .filter(Boolean)
+              .join(" and ")}
+            . Mark running projects as <strong>Approved</strong> and plan them on their Quote tab, and your visit cost here updates automatically.{" "}
+            <Link href="/projects" className="underline">
+              Open projects
+            </Link>
+          </p>
+        )}
+      </div>
     </Card>
   );
 }

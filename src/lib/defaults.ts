@@ -176,6 +176,7 @@ export function sampleSettings(): Settings {
     state: "Maharashtra",
     // Sample figures for the demo — replace with your own.
     studioCosts: {
+      drawsSalary: true,
       ownMonthlyPay: 100000,
       staff: [
         { id: "st1", role: "Junior designer", monthlySalary: 25000 },

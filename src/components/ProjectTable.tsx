@@ -34,7 +34,7 @@ export function ProjectTable({
             <th className="px-4 py-2.5 font-medium">Client</th>
             <th className="px-4 py-2.5 font-medium">Status</th>
             <th className="px-4 py-2.5 text-right font-medium">Quote total</th>
-            <th className="px-4 py-2.5 text-right font-medium">You keep</th>
+            <th className="px-4 py-2.5 text-right font-medium">Studio earns</th>
             <th className="px-4 py-2.5 text-right font-medium">Updated</th>
             {(onDelete || onDuplicate) && <th className="w-16" />}
           </tr>

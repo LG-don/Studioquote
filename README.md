@@ -18,9 +18,13 @@ StudioQuote takes a project through three steps:
 
 Design-fee lines (category *Design services*) are your fee: priced as entered, never marked up.
 
-### What a fee really leaves you (design only / design + part execution)
+### What a project really earns the studio (internal)
 
-On the Quote tab, **What this fee costs you** (internal only) plans duration, site visits and 3D renders. Your monthly pay, team salaries and running costs (Settings → Studio running costs) are shared each month between ongoing fee projects in proportion to what each earns that month — e.g. two ₹3 lakh, 6-month projects each carry half of a ₹25,000 salary. A site visit costs your share of pay + running costs that month ÷ that month's visits, so busy months make visits cheaper. Renders are counted at your fixed cost per render. Projects count as ongoing once marked Sent or Approved. The client only ever sees the fee and its stage payments.
+On the Quote tab, **What this project earns your studio** plans months, site visits and 3D renders. Settings → *Studio running costs* asks whether you draw a fixed monthly salary:
+- **Yes** — your salary is a studio cost, so projects show what the studio earns after paying you.
+- **No** — nothing is deducted for you; the studio's earnings are your income.
+
+Team salaries, running costs and your salary (if fixed) are shared each month between ongoing projects in proportion to what each earns that month (fee, or price minus material & labour) — e.g. two ₹3 lakh, 6-month projects each carry half of a ₹25,000 salary. **Cost of one site visit** = this project's share of (your salary if fixed + running costs) that month ÷ that month's visits, so it falls as more projects run alongside. Renders are counted at your fixed cost per render. Projects count as ongoing once marked Sent or Approved and planned. The dashboard shows what the studio earns this month and across ongoing projects. The client only ever sees the fee and its stage payments.
 
 ## What's new (UX update, Nov 2026)
 

@@ -1,21 +1,29 @@
-// Internal costing for fee-based work (design only / design + part execution).
-// Nothing here is ever shown to the client.
+// Internal costing: what each project really earns the studio. Never shown to the client.
 //
-// The rule: in any month, each studio cost (staff salaries, your own pay, running costs)
-// is shared between the projects running that month in proportion to what each project
-// earns that month (its fee ÷ its duration).
+// The rule: in any month, each studio cost (team salaries, running costs, and your own
+// salary if you draw a fixed one) is shared between the projects running that month in
+// proportion to what each project earns that month.
 //
-//   Example: two ₹3 lakh projects over the same 6 months each earn ₹50k a month,
+//   Example: two ₹3 lakh, 6-month design projects each earn ₹50k a month,
 //   so a ₹25k salary costs each of them ₹12.5k a month.
 //
-// A site visit's cost = (this project's share of your pay + running costs that month)
-// ÷ the visits planned that month. Busy months make each visit cheaper.
+// What a project "earns" is the price excluding GST, minus material and labour bought
+// for it. For design-only work that is simply the fee.
+//
+// A site visit's cost = this project's share of (your salary, if fixed, + running costs)
+// that month ÷ the visits that month. More projects running → cheaper visits.
 
 import { calcProject } from "./calc";
-import { FEE_CATEGORY } from "./constants";
 import type { CostPlan, Project, StudioCosts } from "./types";
 
-export const EMPTY_COSTS: StudioCosts = { ownMonthlyPay: 0, staff: [], otherMonthly: 0, renderCost: 0 };
+export const EMPTY_COSTS: StudioCosts = { drawsSalary: false, ownMonthlyPay: 0, staff: [], otherMonthly: 0, renderCost: 0 };
+
+/** Your salary counts as a cost only if you draw a fixed one. Older settings: any pay entered = yes. */
+export function salaryOf(c?: StudioCosts): number {
+  if (!c) return 0;
+  const draws = c.drawsSalary ?? c.ownMonthlyPay > 0;
+  return draws ? c.ownMonthlyPay || 0 : 0;
+}
 
 export function defaultPlan(): CostPlan {
   const d = new Date();
@@ -38,13 +46,10 @@ export function monthLabel(key: string): string {
   return new Date(y, m - 1, 1).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
 }
 
-/** The project's fee income, excluding GST: its design-service lines after any discount. */
-export function feeIncome(p: Project): number {
+/** What the project earns the studio (excl. GST): price minus material and labour. For design-only, the fee. */
+export function earning(p: Project): number {
   const c = calcProject(p);
-  const fees = p.items.filter((i) => i.category === FEE_CATEGORY && !c.lines[i.id].excluded).reduce((s, i) => s + c.lines[i.id].clientAmount, 0);
-  if (fees <= 0 || c.clientSubtotal <= 0) return 0;
-  // Spread contingency and discount in proportion, so the fee matches what is actually billed.
-  return Math.round((fees * c.taxable) / c.clientSubtotal);
+  return Math.max(0, Math.round(c.taxable - c.costSubtotal));
 }
 
 /** Splits a whole number of visits across months as evenly as possible. */
@@ -60,105 +65,127 @@ export interface MonthRow {
   month: string;
   sharingWith: number; // other projects running that month
   share: number; // 0..1 of the studio's costs carried by this project
-  fee: number; // this project's fee earned that month
-  staff: number;
-  ownPay: number;
+  earned: number; // this project's earning that month
+  team: number;
+  salary: number; // your fixed salary share (0 if you don't draw one)
   running: number;
   visits: number;
   perVisit: number | null;
 }
 
 export interface CostResult {
-  fee: number;
+  earned: number;
   months: MonthRow[];
-  staff: number;
-  ownPay: number;
+  team: number;
+  salary: number;
   running: number;
   renders: number;
-  totalCost: number; // excluding your own pay
-  keep: number; // fee − staff − running − renders (what is left for you)
-  profitAfterPay: number; // keep − your own pay share
-  avgPerVisit: number | null;
-  others: { id: string; name: string; months: string[]; monthlyFee: number }[];
+  studioEarns: number; // earned − team − salary − running − renders
+  perVisit: number | null; // average cost of one site visit
+  perVisitRange: [number, number] | null;
+  drawsSalary: boolean;
+  others: { id: string; name: string; months: string[]; monthlyEarning: number }[];
 }
 
 /**
- * Costs for `project`, sharing each month with `portfolio` (other ongoing fee projects
- * that have a plan). The project itself is always counted, even while it is a draft.
+ * Costs for `project`, sharing each month with `portfolio` (other ongoing projects that
+ * have a plan). The project itself is always counted, even while it is a draft.
  */
 export function costProject(project: Project, portfolio: Project[], costs: StudioCosts = EMPTY_COSTS): CostResult | null {
   const plan = project.plan;
   if (!plan) return null;
   const months = monthsOf(plan);
-  const fee = feeIncome(project);
-  const myMonthly = months.length ? fee / months.length : 0;
+  const earned = earning(project);
+  const myMonthly = months.length ? earned / months.length : 0;
 
   const others = portfolio
     .filter((o) => o.id !== project.id && o.plan)
     .map((o) => {
       const m = monthsOf(o.plan!);
-      const f = feeIncome(o);
-      return { id: o.id, name: o.name || "Untitled project", months: m, monthlyFee: m.length ? f / m.length : 0 };
+      const e = earning(o);
+      return { id: o.id, name: o.name || "Untitled project", months: m, monthlyEarning: m.length ? e / m.length : 0 };
     })
-    .filter((o) => o.monthlyFee > 0 && o.months.some((m) => months.includes(m)));
+    .filter((o) => o.monthlyEarning > 0 && o.months.some((m) => months.includes(m)));
 
-  const salaries = costs.staff.reduce((s, x) => s + (Number(x.monthlySalary) || 0), 0);
+  const teamMonthly = costs.staff.reduce((s, x) => s + (Number(x.monthlySalary) || 0), 0);
+  const salary = salaryOf(costs);
   const visits = spread(plan.visits, months.length);
 
   const rows: MonthRow[] = months.map((month, i) => {
     const active = others.filter((o) => o.months.includes(month));
-    const total = myMonthly + active.reduce((s, o) => s + o.monthlyFee, 0);
-    // With no fee yet, the project carries the month alone so the costs stay visible.
+    const total = myMonthly + active.reduce((s, o) => s + o.monthlyEarning, 0);
+    // With nothing earned yet, the project carries the month alone so the costs stay visible.
     const share = total > 0 ? myMonthly / total : 1;
-    const ownPay = costs.ownMonthlyPay * share;
+    const mySalary = salary * share;
     const running = costs.otherMonthly * share;
     return {
       month,
       sharingWith: active.length,
       share,
-      fee: myMonthly,
-      staff: salaries * share,
-      ownPay,
+      earned: myMonthly,
+      team: teamMonthly * share,
+      salary: mySalary,
       running,
       visits: visits[i],
-      perVisit: visits[i] > 0 ? (ownPay + running) / visits[i] : null,
+      perVisit: visits[i] > 0 ? (mySalary + running) / visits[i] : null,
     };
   });
 
-  const sum = (k: "staff" | "ownPay" | "running") => Math.round(rows.reduce((s, r) => s + r[k], 0));
-  const staff = sum("staff");
-  const ownPay = sum("ownPay");
+  const sum = (k: "team" | "salary" | "running") => Math.round(rows.reduce((s, r) => s + r[k], 0));
+  const team = sum("team");
+  const salaryTotal = sum("salary");
   const running = sum("running");
   const renders = Math.round((plan.renders || 0) * (plan.renderCost ?? costs.renderCost ?? 0));
-  const totalCost = staff + running + renders;
-  const keep = fee - totalCost;
   const totalVisits = visits.reduce((s, v) => s + v, 0);
+  const pv = rows.map((r) => r.perVisit).filter((v): v is number => v !== null);
   return {
-    fee,
+    earned,
     months: rows,
-    staff,
-    ownPay,
+    team,
+    salary: salaryTotal,
     running,
     renders,
-    totalCost,
-    keep,
-    profitAfterPay: keep - ownPay,
-    avgPerVisit: totalVisits ? Math.round((ownPay + running) / totalVisits) : null,
-    others: others.map((o) => ({ id: o.id, name: o.name, months: o.months, monthlyFee: Math.round(o.monthlyFee) })),
+    studioEarns: earned - team - salaryTotal - running - renders,
+    perVisit: totalVisits ? Math.round((salaryTotal + running) / totalVisits) : null,
+    perVisitRange: pv.length ? [Math.round(Math.min(...pv)), Math.round(Math.max(...pv))] : null,
+    drawsSalary: salary > 0,
+    others: others.map((o) => ({ id: o.id, name: o.name, months: o.months, monthlyEarning: Math.round(o.monthlyEarning) })),
   };
 }
 
-/** Projects that count as "ongoing" for sharing costs: approved or sent, with a plan and a fee. */
+/** Projects that share costs: marked Sent or Approved, planned, and earning something. */
 export function ongoingPortfolio(all: Project[]): Project[] {
-  return all.filter((p) => p.plan && p.status !== "draft" && feeIncome(p) > 0);
+  return all.filter((p) => p.plan && p.status !== "draft" && earning(p) > 0);
 }
 
-/** "What you keep" for any project: the cost plan for fee work, quote profit otherwise. */
+/** Why other projects aren't sharing costs — so the designer can fix it. */
+export function notCounted(all: Project[], selfId: string): { drafts: number; unplanned: number } {
+  const others = all.filter((p) => p.id !== selfId && !p.isSample);
+  return {
+    drafts: others.filter((p) => p.status === "draft").length,
+    unplanned: others.filter((p) => p.status !== "draft" && !p.plan).length,
+  };
+}
+
+/** What the studio earns on a project: after shared costs when planned, else quote profit. */
 export function keepFor(p: Project, all: Project[], costs?: StudioCosts): { value: number; pct: number; planned: boolean } {
-  if ((p.engagement ?? "turnkey") !== "turnkey" && p.plan) {
+  if (p.plan) {
     const r = costProject(p, ongoingPortfolio(all.filter((o) => o.id !== p.id)), costs);
-    if (r) return { value: r.keep, pct: r.fee > 0 ? (r.keep / r.fee) * 100 : 0, planned: true };
+    if (r) return { value: r.studioEarns, pct: r.earned > 0 ? (r.studioEarns / r.earned) * 100 : 0, planned: true };
   }
   const c = calcProject(p);
   return { value: c.profit, pct: c.marginPct, planned: false };
+}
+
+/**
+ * The studio's earnings for one month across all ongoing planned projects:
+ * what they earn that month minus the studio's monthly costs (team, your salary
+ * if fixed, running costs). Renders are one-off and left out here.
+ */
+export function studioMonth(all: Project[], costs: StudioCosts | undefined, month: string): { earned: number; costs: number; earns: number; projects: number } {
+  const running = ongoingPortfolio(all).filter((p) => monthsOf(p.plan!).includes(month));
+  const earned = Math.round(running.reduce((s, p) => s + earning(p) / monthsOf(p.plan!).length, 0));
+  const c = costs ?? EMPTY_COSTS;
+  const monthlyCosts = c.staff.reduce((s, x) => s + (Number(x.monthlySalary) || 0), 0) + salaryOf(c) + (c.otherMonthly || 0);
+  return { earned, costs: monthlyCosts, earns: earned - monthlyCosts, projects: running.length };
 }

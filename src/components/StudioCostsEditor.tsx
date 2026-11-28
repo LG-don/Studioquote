@@ -1,11 +1,11 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { EMPTY_COSTS } from "@/lib/costing";
+import { EMPTY_COSTS, salaryOf } from "@/lib/costing";
 import { rupees } from "@/lib/format";
 import { uid } from "@/lib/ids";
 import type { StudioCosts } from "@/lib/types";
-import { Button, Field, NumberInput } from "./ui";
+import { Button, cx, Field, NumberInput } from "./ui";
 
 const numCls = "h-9 w-full rounded-md border border-line-2 bg-white px-3 text-right text-sm outline-none focus:border-accent";
 
@@ -14,12 +14,43 @@ export function StudioCostsEditor({ value, onChange }: { value?: StudioCosts; on
   const c = value ?? EMPTY_COSTS;
   const set = (patch: Partial<StudioCosts>) => onChange({ ...c, ...patch });
   const salaries = c.staff.reduce((s, x) => s + (Number(x.monthlySalary) || 0), 0);
+  const draws = c.drawsSalary ?? c.ownMonthlyPay > 0;
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Your own monthly pay (₹)" hint="What you want to earn per month">
-          <NumberInput value={c.ownMonthlyPay || null} onChange={(v) => set({ ownMonthlyPay: v ?? 0 })} className={numCls} />
-        </Field>
+      <div>
+        <div className="mb-1.5 text-[13px] font-medium text-ink-2">Do you draw a fixed monthly salary from the studio?</div>
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            [true, "Yes"],
+            [false, "No — I take what the studio earns"],
+          ].map(([v, label]) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => set({ drawsSalary: v as boolean })}
+              className={cx(
+                "h-9 rounded-md border px-3.5 text-sm",
+                draws === v ? "border-ink bg-ink text-white" : "border-line-2 bg-white text-ink-2 hover:bg-hover",
+              )}
+            >
+              {label as string}
+            </button>
+          ))}
+          {draws && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-ink-3">of</span>
+              <NumberInput value={c.ownMonthlyPay || null} onChange={(v) => set({ ownMonthlyPay: v ?? 0 })} className="h-9 w-36 rounded-md border border-line-2 bg-white px-3 text-right text-sm outline-none focus:border-accent" placeholder="₹ per month" aria-label="Your monthly salary" />
+              <span className="whitespace-nowrap text-sm text-ink-3">/ month</span>
+            </div>
+          )}
+        </div>
+        <p className="mt-1.5 text-xs text-ink-3">
+          {draws
+            ? "Your salary is treated as a studio cost, so each project shows what the studio earns after paying you."
+            : "No salary is deducted — each project shows the studio's full earnings, which is what you take home."}
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Other monthly costs (₹)" hint="Rent, software, travel, utilities">
           <NumberInput value={c.otherMonthly || null} onChange={(v) => set({ otherMonthly: v ?? 0 })} className={numCls} />
         </Field>
@@ -57,12 +88,12 @@ export function StudioCostsEditor({ value, onChange }: { value?: StudioCosts; on
             <Plus size={13} /> Add team member
           </Button>
           <span className="text-xs text-ink-3">
-            Studio runs at {rupees(salaries + c.ownMonthlyPay + c.otherMonthly)} / month including your pay
+            Studio costs {rupees(salaries + salaryOf(c) + c.otherMonthly)} / month{draws ? " including your salary" : ""}
           </span>
         </div>
       </div>
       <p className="text-xs leading-relaxed text-ink-3">
-        Each month these costs are shared between your ongoing fee projects in proportion to what each one earns that month. Clients never see any of this.
+        Each month these costs are shared between your ongoing projects in proportion to what each one earns that month. Clients never see any of this.
       </p>
     </div>
   );
